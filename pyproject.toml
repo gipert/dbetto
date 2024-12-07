@@ -30,12 +30,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "GitPython",
-    "pandas",
     "pyyaml",
-    "psycopg2-binary<=2.9.9; python_version<'3.10' and platform_system=='Darwin'",
-    "psycopg2-binary; python_version>='3.10' or platform_system!='Darwin'",
-    "sqlalchemy>=2",
 ]
 
 [project.optional-dependencies]
@@ -50,6 +45,7 @@ dev = [
 docs = [
   "sphinx>=7.0",
   "myst_parser>=0.13",
+  "sphinx_inline_tabs",
   "sphinx_copybutton",
   "sphinx_autodoc_typehints",
   "furo>=2023.08.17",
