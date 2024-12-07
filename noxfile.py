@@ -31,7 +31,7 @@ def pylint(session: nox.Session) -> None:
     """
     # This needs to be installed into the package environment, and is slower
     # than a pre-commit check
-    session.install("-e .", "pylint>=3.2")
+    session.install("--force-reinstall", ".", "pylint>=3.2")
     session.run("pylint", "dbetto", *session.posargs)
 
 
@@ -40,7 +40,7 @@ def tests(session: nox.Session) -> None:
     """
     Run the unit and regular tests.
     """
-    session.install("-e .[test]")
+    session.install("-e.[test]")
     session.run("pytest", *session.posargs)
 
 
@@ -58,7 +58,7 @@ def docs(session: nox.Session) -> None:
     args, posargs = parser.parse_known_args(session.posargs)
     serve = args.builder == "html" and session.interactive
 
-    session.install("-e .[docs]", "sphinx-autobuild")
+    session.install("-e.[docs]", "sphinx-autobuild")
 
     shared_args = (
         "-n",  # nitpicky mode
