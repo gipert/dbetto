@@ -1,27 +1,14 @@
 # dbetto
 
-[![Actions Status][actions-badge]][actions-link]
-[![Documentation Status][rtd-badge]][rtd-link]
+[![PyPI](https://img.shields.io/pypi/v/dbetto?logo=pypi)](https://pypi.org/project/dbetto/)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/gipert/dbetto?logo=git)
+[![GitHub Workflow Status](https://img.shields.io/github/checks-status/gipert/dbetto/main?label=main%20branch&logo=github)](https://github.com/gipert/dbetto/actions)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Codecov](https://img.shields.io/codecov/c/github/gipert/dbetto?logo=codecov)](https://app.codecov.io/gh/gipert/dbetto)
+![GitHub issues](https://img.shields.io/github/issues/gipert/dbetto?logo=github)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/gipert/dbetto?logo=github)
+![License](https://img.shields.io/github/license/gipert/dbetto)
+[![Read the Docs](https://img.shields.io/readthedocs/dbetto?logo=readthedocs)](https://dbetto.readthedocs.io)
 
-[![PyPI version][pypi-version]][pypi-link]
-[![Conda-Forge][conda-badge]][conda-link]
-[![PyPI platforms][pypi-platforms]][pypi-link]
-
-[![GitHub Discussion][github-discussions-badge]][github-discussions-link]
-
-<!-- SPHINX-START -->
-
-<!-- prettier-ignore-start -->
-[actions-badge]:            https://github.com/gipert/dbetto/workflows/CI/badge.svg
-[actions-link]:             https://github.com/gipert/dbetto/actions
-[conda-badge]:              https://img.shields.io/conda/vn/conda-forge/dbetto
-[conda-link]:               https://github.com/conda-forge/dbetto-feedstock
-[github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
-[github-discussions-link]:  https://github.com/gipert/dbetto/discussions
-[pypi-link]:                https://pypi.org/project/dbetto/
-[pypi-platforms]:           https://img.shields.io/pypi/pyversions/dbetto
-[pypi-version]:             https://img.shields.io/pypi/v/dbetto
-[rtd-badge]:                https://readthedocs.org/projects/dbetto/badge/?version=latest
-[rtd-link]:                 https://dbetto.readthedocs.io/en/latest/?badge=latest
-
-<!-- prettier-ignore-end -->
+A tiny text based database.

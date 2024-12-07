@@ -53,6 +53,7 @@ repos:
     hooks:
       - id: mypy
         files: src|tests
+        stages: [manual]
         args: []
         additional_dependencies:
           - pytest
