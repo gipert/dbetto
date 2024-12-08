@@ -18,7 +18,8 @@
 from __future__ import annotations
 
 from ._version import version as __version__
-from .textdb import AttrsDict, TextDB
+from .attrsdict import AttrsDict
+from .textdb import TextDB
 from .time import str_to_datetime
 
 __all__ = [
