@@ -13,17 +13,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""A package to access `legend-metadata <https://github.com/legend-exp/legend-metadata>`_ in Python."""
-
 from __future__ import annotations
 
-from ._version import version as __version__
-from .textdb import AttrsDict, TextDB
-from .time import str_to_datetime
+from datetime import datetime
 
-__all__ = [
-    "__version__",
-    "TextDB",
-    "AttrsDict",
-    "str_to_datetime",
-]
+
+def str_to_datetime(value):
+    """Convert a string in the format %Y%m%dT%H%M%SZ to :class:`datetime.datetime`."""
+    return datetime.strptime(value, "%Y%m%dT%H%M%SZ")
+
+
+def unix_time(value):
+    """Convert a string in the format %Y%m%dT%H%M%SZ or datetime object to Unix time value"""
+    if isinstance(value, str):
+        return datetime.timestamp(str_to_datetime(value))
+
+    if isinstance(value, datetime):
+        return datetime.timestamp(value)
+
+    msg = f"Can't convert type {type(value)} to unix time"
+    raise ValueError(msg)

@@ -19,30 +19,12 @@ import collections
 import copy
 import types
 from collections import namedtuple
-from datetime import datetime
 from pathlib import Path
 from string import Template
 
 import yaml
 
-from . import utils
-
-
-def to_datetime(value):
-    """Convert a LEGEND timestamp (or key) to :class:`datetime.datetime`."""
-    return datetime.strptime(value, "%Y%m%dT%H%M%SZ")
-
-
-def unix_time(value):
-    """Convert a LEGEND timestamp or datetime object to Unix time value"""
-    if isinstance(value, str):
-        return datetime.timestamp(datetime.strptime(value, "%Y%m%dT%H%M%SZ"))
-
-    if isinstance(value, datetime):
-        return datetime.timestamp(value)
-
-    msg = f"Can't convert type {type(value)} to unix time"
-    raise ValueError(msg)
+from . import time, utils
 
 
 class PropsStream:
@@ -63,7 +45,7 @@ class PropsStream:
     def read_from(file_name):
         with Path(file_name).open(encoding="utf-8") as r:
             file = yaml.safe_load(r)
-        file = sorted(file, key=lambda item: unix_time(item["valid_from"]))
+        file = sorted(file, key=lambda item: time.unix_time(item["valid_from"]))
         yield from file
 
 
@@ -123,7 +105,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
             if timestamp in [entry.valid_from for entry in entries[system]]:
                 msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
                 raise ValueError(msg)
-            entries[system].append(Catalog.Entry(unix_time(timestamp), new))
+            entries[system].append(Catalog.Entry(time.unix_time(timestamp), new))
 
         for system in entries:
             entries[system] = sorted(
@@ -135,7 +117,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         """Get the valid entries for a given timestamp and system"""
         if system in self.entries:
             valid_from = [entry.valid_from for entry in self.entries[system]]
-            pos = bisect.bisect_right(valid_from, unix_time(timestamp))
+            pos = bisect.bisect_right(valid_from, time.unix_time(timestamp))
             if pos > 0:
                 return self.entries[system][pos - 1].file
 

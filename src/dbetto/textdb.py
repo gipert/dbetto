@@ -388,8 +388,8 @@ class TextDB:
             pattern ``YYYYmmddTHHMMSSZ``.
         pattern
             query by filename pattern.
-        system: 'all', 'phy', 'cal', 'lar', ...
-            query only a data taking "system".
+        system
+            query only a data taking "system" (e.g. 'all', 'phy', 'cal', 'lar', ...)
         """
         for ext in utils.__file_extensions__["yaml"]:
             yml = self.__path__ / f"validity{ext}"
