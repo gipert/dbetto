@@ -115,7 +115,7 @@ class AttrsDict(dict):
         Parameters
         ----------
         label
-            name (key) at which the new label can be found. If nested in
+            game (key) at which the new label can be found. If nested in
             dictionaries, use ``.`` to separate levels, e.g.
             ``level1.level2.label``.
         unique
@@ -349,7 +349,9 @@ class TextDB:
         # recursive search or not?
         _fcn = self.__path__.rglob if recursive else self.__path__.glob
         # build file list
-        flist = (p for p in _fcn(f"{subdir}/*") if p.suffix in self.__extensions__)
+        flist = (
+            p for p in _fcn(str(Path(subdir) / "*")) if p.suffix in self.__extensions__
+        )
 
         for j in flist:
             try:

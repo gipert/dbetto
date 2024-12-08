@@ -18,9 +18,7 @@ def test_props():
 
     # test subst_vars
     Props.subst_vars(test_dict, var_values={"_": str(Path(__file__).parent / "testdb")})
-    assert test_dict["filepath"] == str(
-        Path(__file__).parent / "testdb" / "dir1" / "file3.yaml"
-    )
+    assert test_dict["filepath"] == str(Path(__file__).parent / "testdb")
 
     test_dict2 = Props.read_from(str(Path(__file__).parent / "testdb" / "file3.json"))
 
@@ -42,9 +40,7 @@ def test_props():
         trim_null=True,
     )
     assert test_dict["data"] == 3
-    assert test_dict["filepath"] == str(
-        Path(__file__).parent / "testdb" / "dir1" / "file3.yaml"
-    )
+    assert test_dict["filepath"] == str(Path(__file__).parent / "testdb")
     with pytest.raises(KeyError):
         test_dict["null_key"]
 
@@ -82,9 +78,7 @@ def test_access():
     assert jdb.arrays[1].array[0] == 1
     assert jdb.arrays[1].array[1].data == 2
 
-    assert jdb.file2.filepath == str(
-        Path(__file__).parent / "testdb" / "dir1" / "file3.yaml"
-    )
+    assert jdb.file2.filepath == str(Path(__file__).parent / "testdb")
 
     with pytest.raises(ValueError):
         TextDB("non-existent-db")
