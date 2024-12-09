@@ -23,8 +23,8 @@ from .textdb import TextDB
 from .time import str_to_datetime
 
 __all__ = [
-    "__version__",
-    "TextDB",
     "AttrsDict",
+    "TextDB",
+    "__version__",
     "str_to_datetime",
 ]
