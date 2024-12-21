@@ -69,6 +69,8 @@ def docs(session: nox.Session) -> None:
         *posargs,
     )
 
+    build_api_docs(session)
+
     if serve:
         session.run("sphinx-autobuild", "--open-browser", *shared_args)
     else:
