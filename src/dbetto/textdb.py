@@ -38,7 +38,7 @@ class TextDB:
     The database is represented on disk by a collection of text files
     arbitrarily scattered in a filesystem. Subdirectories are also
     :class:`.TextDB` objects. In memory, the database is represented as an
-    :class:`AttrsDict`.
+    :class:`~.attrsdict.AttrsDict`.
 
     Currently supported file formats are JSON and YAML.
 
@@ -210,7 +210,7 @@ class TextDB:
 
         See Also
         --------
-        AttrsDict.map
+        .attrsdict.AttrsDict.map
 
         Warning
         -------
@@ -224,7 +224,7 @@ class TextDB:
 
         See Also
         --------
-        AttrsDict.group
+        .attrsdict.AttrsDict.group
 
         Warning
         -------

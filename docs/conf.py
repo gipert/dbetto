@@ -14,8 +14,10 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
+    "sphinx_inline_tabs",
 ]
 
 source_suffix = [".rst", ".md"]
@@ -62,3 +64,16 @@ nitpick_ignore = [
 ]
 
 always_document_param_types = True
+
+# intersphinx
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "pandas": ("https://pandas.pydata.org/docs", None),
+}  # add new intersphinx mappings here
+
+rst_epilog = """
+.. |dbetto| replace:: :mod:`dbetto`
+.. |TextDB| replace:: :class:`~.textdb.TextDB`
+.. |AttrsDict| replace:: :class:`~.attrsdict.AttrsDict`
+"""

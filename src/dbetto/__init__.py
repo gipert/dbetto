@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""A package to access `legend-metadata <https://github.com/legend-exp/legend-metadata>`_ in Python."""
-
 from __future__ import annotations
 
 from ._version import version as __version__
