@@ -146,7 +146,7 @@ defined in ``value``. Imagine a dictionary of properties of particle detectors
 (also called channel map), keyed by the detector name:
 
 >>> chmap.V05266A
-{'detname': 'V05266A',
+{'name': 'V05266A',
  'system': 'geds',
  'location': {'string': 1, 'position': 4},
  'daq': {'crate': 0,
@@ -159,7 +159,7 @@ detector ``V05266A`` by using the numeric identifier assigned by the data
 acquisition system, stored under "daq" > "id":
 
 >>> chmap.map("daq.rawid")[1104003]
-{'detname': 'V05266A',
+{'name': 'V05266A',
  'system': 'geds',
  'location': {'string': 1, 'position': 4},
  'daq': {'crate': 0,

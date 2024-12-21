@@ -1,7 +1,13 @@
-|dbetto|
-========
+dbetto
+======
 
-|dbetto| is a Python package to access arbitrary text file databases.
+|dbetto| is a lightweight Python library that enables seamless access and
+management of text-based databases (JSON/YAML) scattered across your
+filesystem. Whether you're handling nested data structures or querying data by
+validity periods, |dbetto| simplifies it all with an intuitive interface.
+
+|dbetto| was originally developed to efficiently manage metadata for the LEGEND
+physics experiment.
 
 Getting started
 ---------------
@@ -27,7 +33,6 @@ Next steps
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
 
    tutorial
 
