@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Hashable
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -162,8 +163,8 @@ class AttrsDict(dict):
             except (KeyError, TypeError, FileNotFoundError):
                 continue
 
-            if not isinstance(newid, (int, float, str)):
-                msg = f"'{label}' values are not all numbers or strings"
+            if not isinstance(newid, Hashable):
+                msg = f"'{label}' values are not all hashable"
                 raise RuntimeError(msg)
 
             if newid in newmap:
