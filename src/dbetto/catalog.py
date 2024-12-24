@@ -32,7 +32,7 @@ class PropsStream:
 
     @staticmethod
     def get(value):
-        if isinstance(value, str):
+        if isinstance(value, (str, Path)):
             return PropsStream.read_from(value)
 
         if isinstance(value, (collections.abc.Sequence, types.GeneratorType)):
@@ -64,7 +64,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         if isinstance(value, Catalog):
             return value
 
-        if isinstance(value, str):
+        if isinstance(value, (str, Path)):
             return Catalog.read_from(value)
 
         msg = f"Can't get Catalog from value of type {type(value)}"
