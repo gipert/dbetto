@@ -17,11 +17,13 @@ from __future__ import annotations
 
 from ._version import version as __version__
 from .attrsdict import AttrsDict
+from .catalog import Props
 from .textdb import TextDB
 from .time import str_to_datetime
 
 __all__ = [
     "AttrsDict",
+    "Props",
     "TextDB",
     "__version__",
     "str_to_datetime",
