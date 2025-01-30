@@ -36,7 +36,7 @@ def load_dict(fname: str, ftype: str | None = None) -> dict:
             if fname.suffix in exts:
                 ftype = _ftype
 
-    msg = f"writing {ftype} dict to: {fname}"
+    msg = f"reading {ftype} dict from: {fname}"
     log.debug(msg)
 
     with fname.open(encoding="utf-8") as f:
