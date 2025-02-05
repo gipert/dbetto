@@ -178,8 +178,10 @@ class TextDB:
             msg = f"no validity.yaml / validity.yml file found in {self.__path__!s}"
             raise RuntimeError(msg)
 
+        # parse validity file and return requested files
         file_list = Catalog.get_files(str(yml), timestamp, system)
-        # select only files matching pattern if specified
+
+        # select only files matching pattern, if specified
         if pattern is not None:
             c = re.compile(pattern)
             out_files = []
@@ -190,20 +192,25 @@ class TextDB:
         else:
             files = file_list
 
+        # sanitize
+        if not isinstance(files, list):
+            files = [files]
+
         # read files in and combine as necessary
-        db_ptr = self
-        if isinstance(files, list):
-            result = AttrsDict()
-            for file in files:
-                fp = self.__path__.rglob(file)
-                # TODO: what does this do exactly?
-                Props.add_to(result, db_ptr[next(iter(fp))])
-            db_ptr = result
-        else:
-            fp = self.__path__.rglob(files)
-            db_ptr = db_ptr[next(iter(fp))]
-        Props.subst_vars(db_ptr, var_values={"_": self.__path__})
-        return db_ptr
+        result = AttrsDict()
+
+        for file in files:
+            # absolute path
+            file_abs = self.__path__.rglob(file)
+
+            # combine dictionaries
+            for f in file_abs:
+                Props.add_to(result, self[f])
+
+        # substitute $_ with path to the file
+        Props.subst_vars(result, var_values={"_": self.__path__})
+
+        return result
 
     def map(self, label: str, unique: bool = True) -> AttrsDict:
         """Remap dictionary according to a second unique `label`.
