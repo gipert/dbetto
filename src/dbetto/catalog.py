@@ -104,7 +104,9 @@ class Catalog(namedtuple("Catalog", ["entries"])):
                     msg = f"Unknown mode for {timestamp}"
                     raise ValueError(msg)
 
-                if timestamp in [entry.valid_from for entry in entries[syst]]:
+                if time.unix_time(timestamp) in [
+                    entry.valid_from for entry in entries[syst]
+                ]:
                     msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
                     raise ValueError(msg)
                 entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
