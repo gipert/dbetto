@@ -93,7 +93,15 @@ def test_access():
 
 def test_keys():
     jdb = TextDB(testdb, lazy=False)
-    assert sorted(jdb.keys()) == ["arrays", "dir1", "dir2", "file1", "file2", "file3"]
+    assert sorted(jdb.keys()) == [
+        "arrays",
+        "dir1",
+        "dir2",
+        "dir3",
+        "file1",
+        "file2",
+        "file3",
+    ]
     assert sorted(jdb.dir1.keys()) == ["dir2", "file3", "file5", "file6", "validity"]
 
     assert "arrays" in jdb
@@ -106,8 +114,8 @@ def test_items():
     assert isinstance(items[0][1], list)
     assert items[1][0] == "dir1"
     assert isinstance(items[1][1], TextDB)
-    assert items[3][0] == "file1"
-    assert isinstance(items[3][1], AttrsDict)
+    assert items[4][0] == "file1"
+    assert isinstance(items[4][1], AttrsDict)
 
 
 def test_scan():
@@ -123,6 +131,7 @@ def test_scan():
         "arrays",
         "dir1",
         "dir2",
+        "dir3",
         "file1",
         "file2",
         "file3",
@@ -175,9 +184,21 @@ def test_time_validity():
     assert jdb["dir1"].on("20230104T120000Z")["data"] == 3
     # test replace functionality
     assert jdb["dir1"].on("20230105T120000Z")["data"] == 1
+    # test lists of categories
+    assert jdb.dir1.on("20230106T000001Z", system="cat1").data == 3
+    assert jdb.dir1.on("20230106T000001Z", system="cat2").data == 3
     # directory with no .yml
     with pytest.raises(RuntimeError):
         jdb["dir1"]["dir2"].on("20230101T000001Z")
+    # replace too many entries
+    with pytest.raises(ValueError):
+        jdb["dir3"]["dir4"].on("20230101T000001Z")
+    # invalid mode
+    with pytest.raises(ValueError):
+        jdb["dir3"]["dir5"].on("20230101T000001Z")
+    # multiple entries with same timestamp
+    with pytest.raises(ValueError):
+        jdb["dir3"]["dir6"].on("20230103T000001Z")
 
     # invalid timestamp
     with pytest.raises(ValueError):
@@ -290,6 +311,7 @@ def test_lazyness():
         "arrays",
         "dir1",
         "dir2",
+        "dir3",
         "file1",
         "file2",
         "file3",
