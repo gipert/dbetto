@@ -76,36 +76,40 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         entries = {}
         for props in PropsStream.get(file_name):
             timestamp = props["valid_from"]
-            system = "all" if props.get("category") is None else props["category"]
+            system = props.get("category", "all")
+            if not isinstance(system, list):
+                system = [system]
             file_key = props["apply"]
-            if system not in entries:
-                entries[system] = []
-            mode = "append" if props.get("mode") is None else props["mode"]
-            mode = "reset" if len(entries[system]) == 0 else mode
-            if mode == "reset":
-                new = file_key
-            elif mode == "append":
-                new = entries[system][-1].file.copy() + file_key
-            elif mode == "remove":
-                new = entries[system][-1].file.copy()
-                for file in file_key:
-                    new.remove(file)
-            elif mode == "replace":
-                new = entries[system][-1].file.copy()
-                if len(file_key) != 2:
-                    msg = f"Invalid number of elements in replace mode: {len(file_key)}"
+            for syst in system:
+                if syst not in entries:
+                    entries[syst] = []
+                mode = props.get("mode", "append")
+                mode = "reset" if len(entries[syst]) == 0 else mode
+                if mode == "reset":
+                    new = file_key
+                elif mode == "append":
+                    new = entries[syst][-1].file.copy() + file_key
+                elif mode == "remove":
+                    new = entries[syst][-1].file.copy()
+                    for file in file_key:
+                        new.remove(file)
+                elif mode == "replace":
+                    new = entries[syst][-1].file.copy()
+                    if len(file_key) != 2:
+                        msg = f"Invalid number of elements in replace mode: {len(file_key)}"
+                        raise ValueError(msg)
+                    new.remove(file_key[0])
+                    new += [file_key[1]]
+                else:
+                    msg = f"Unknown mode for {timestamp}"
                     raise ValueError(msg)
-                new.remove(file_key[0])
-                new += [file_key[1]]
 
-            else:
-                msg = f"Unknown mode for {timestamp}"
-                raise ValueError(msg)
-
-            if timestamp in [entry.valid_from for entry in entries[system]]:
-                msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
-                raise ValueError(msg)
-            entries[system].append(Catalog.Entry(time.unix_time(timestamp), new))
+                if time.unix_time(timestamp) in [
+                    entry.valid_from for entry in entries[syst]
+                ]:
+                    msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
+                    raise ValueError(msg)
+                entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
 
         for system, value in entries.items():
             entries[system] = sorted(value, key=lambda entry: entry.valid_from)

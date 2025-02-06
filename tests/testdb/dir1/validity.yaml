@@ -27,3 +27,10 @@
   apply:
     - file6.yaml
     - file3.yaml
+
+- valid_from: 20230106T000000Z
+  category: [cat1, cat2]
+  mode: replace
+  apply:
+    - file3.yaml
+    - file6.yaml
