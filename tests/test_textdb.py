@@ -118,6 +118,16 @@ def test_items():
     assert isinstance(items[4][1], AttrsDict)
 
 
+def test_reset():
+    jdb = TextDB(testdb, lazy=True)
+    assert jdb.dir1.file3
+
+    assert list(jdb.keys()) == ["dir1"]
+
+    jdb.reset()
+    assert list(jdb.keys()) == []
+
+
 def test_scan():
     jdb = TextDB(testdb, lazy=True)
     jdb.scan(recursive=True)
