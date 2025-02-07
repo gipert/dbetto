@@ -241,3 +241,7 @@ class AttrsDict(dict):
     # d1 | d2 should still produce a valid AttrsDict
     def __or__(self, other: dict | AttrsDict) -> AttrsDict:
         return AttrsDict(super().__or__(other))
+
+    def reset(self) -> None:
+        """Reset this instance by removing all cached data."""
+        super().__setattr__("__cached_remaps__", {})
