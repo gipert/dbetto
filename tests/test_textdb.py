@@ -246,6 +246,12 @@ def test_mapping():
         jdb.map("non-existent-label")
 
 
+def test_time_jsonl():
+    jdb = TextDB(testdb)
+    assert jdb["dir2"].on("20220628T221955Z")["data"] == 1
+    assert jdb["dir2"].on("20220629T221955Z")["data"] == 2
+
+
 def test_modification():
     d = AttrsDict()
     d["a"] = 1

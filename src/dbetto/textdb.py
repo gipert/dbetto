@@ -162,9 +162,10 @@ class TextDB:
     ) -> AttrsDict | list:
         """Query database in `time[, file pattern, system]`.
 
-        A (only one) valid ``validity.yaml`` file must exist in the directory
-        to specify a validity mapping. This functionality relies on the
-        :class:`.catalog.Catalog` class.
+        A (only one) valid validity file (YAML, JSON, JSONL and other file
+        types supported) must exist in the directory to specify a validity
+        mapping. This functionality relies on the :class:`.catalog.Catalog`
+        class.
 
         The YAML specification is documented at `this link
         <https://legend-exp.github.io/legend-data-format-specs/dev/metadata/#Specifying-metadata-validity-in-time-(and-system)>`_.
@@ -182,16 +183,26 @@ class TextDB:
         system
             query only a data taking "system" (e.g. 'all', 'phy', 'cal', 'lar', ...)
         """
-        for ext in utils.__file_extensions__["yaml"]:
-            yml = self.__path__ / f"validity{ext}"
-            if yml.is_file():
-                break
-        if not yml.is_file():
-            msg = f"no validity.yaml / validity.yml file found in {self.__path__!s}"
+        _extensions = [*list(self.__extensions__), ".jsonl"]
+        validity_file = None
+        for ext in _extensions:
+            candidate = self.__path__ / f"validity{ext}"
+            if candidate.is_file():
+                if validity_file is not None:
+                    msg = (
+                        "multiple supported validity files found, "
+                        "will use the first on of {_extensions}"
+                    )
+                    log.warning(msg)
+                    break
+                validity_file = candidate
+
+        if validity_file is None:
+            msg = f"no validity.* file found in {self.__path__!s}"
             raise RuntimeError(msg)
 
         # parse validity file and return requested files
-        file_list = Catalog.get_files(str(yml), timestamp, system)
+        file_list = Catalog.get_files(str(validity_file), timestamp, system)
 
         # select only files matching pattern, if specified
         if pattern is not None:

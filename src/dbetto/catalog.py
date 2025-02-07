@@ -17,18 +17,17 @@ from __future__ import annotations
 import bisect
 import collections
 import copy
+import json
 import types
 from collections import namedtuple
 from pathlib import Path
 from string import Template
 
-import yaml
-
 from . import time, utils
 
 
 class PropsStream:
-    """Simple class to control loading of validity.yaml files"""
+    """Simple class to control loading of validity files"""
 
     @staticmethod
     def get(value):
@@ -43,14 +42,25 @@ class PropsStream:
 
     @staticmethod
     def read_from(file_name):
-        with Path(file_name).open(encoding="utf-8") as r:
-            file = yaml.safe_load(r)
-        file = sorted(file, key=lambda item: time.unix_time(item["valid_from"]))
-        yield from file
+        ext = Path(file_name).suffix
+        # support for legacy JSONL format
+        if ext == ".jsonl":
+            with Path(file_name).open(encoding="utf-8") as file:
+                for json_str in file:
+                    yield json.loads(json_str)
+
+        else:
+            yield from sorted(
+                utils.load_dict(file_name),
+                key=lambda item: time.unix_time(item["valid_from"]),
+            )
 
 
 class Catalog(namedtuple("Catalog", ["entries"])):
-    """Implementation of the `YAML metadata validity specification <https://legend-exp.github.io/legend-data-format-specs/dev/metadata/#Specifying-metadata-validity-in-time-(and-system)>`_."""
+    """Implementation of the `YAML metadata validity specification <https://legend-exp.github.io/legend-data-format-specs/dev/metadata/#Specifying-metadata-validity-in-time-(and-system)>`_.
+
+    The legacy JSONL specification is also supported.
+    """
 
     __slots__ = ()
 
@@ -72,7 +82,8 @@ class Catalog(namedtuple("Catalog", ["entries"])):
 
     @staticmethod
     def read_from(file_name):
-        """Read from a valdiity YAML file and build a Catalog object"""
+        """Read from a valdiity file and build a Catalog object"""
+        ext = Path(file_name).suffix
         entries = {}
         for props in PropsStream.get(file_name):
             timestamp = props["valid_from"]
@@ -83,33 +94,41 @@ class Catalog(namedtuple("Catalog", ["entries"])):
             for syst in system:
                 if syst not in entries:
                     entries[syst] = []
-                mode = props.get("mode", "append")
-                mode = "reset" if len(entries[syst]) == 0 else mode
-                if mode == "reset":
-                    new = file_key
-                elif mode == "append":
-                    new = entries[syst][-1].file.copy() + file_key
-                elif mode == "remove":
-                    new = entries[syst][-1].file.copy()
-                    for file in file_key:
-                        new.remove(file)
-                elif mode == "replace":
-                    new = entries[syst][-1].file.copy()
-                    if len(file_key) != 2:
-                        msg = f"Invalid number of elements in replace mode: {len(file_key)}"
-                        raise ValueError(msg)
-                    new.remove(file_key[0])
-                    new += [file_key[1]]
-                else:
-                    msg = f"Unknown mode for {timestamp}"
-                    raise ValueError(msg)
 
-                if time.unix_time(timestamp) in [
-                    entry.valid_from for entry in entries[syst]
-                ]:
-                    msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
-                    raise ValueError(msg)
-                entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
+                # support for legacy JSONL format
+                if ext == "jsonl":
+                    entries[system].append(
+                        Catalog.Entry(time.unix_time(timestamp), file_key)
+                    )
+
+                else:
+                    mode = props.get("mode", "append")
+                    mode = "reset" if len(entries[syst]) == 0 else mode
+                    if mode == "reset":
+                        new = file_key
+                    elif mode == "append":
+                        new = entries[syst][-1].file.copy() + file_key
+                    elif mode == "remove":
+                        new = entries[syst][-1].file.copy()
+                        for file in file_key:
+                            new.remove(file)
+                    elif mode == "replace":
+                        new = entries[syst][-1].file.copy()
+                        if len(file_key) != 2:
+                            msg = f"Invalid number of elements in replace mode: {len(file_key)}"
+                            raise ValueError(msg)
+                        new.remove(file_key[0])
+                        new += [file_key[1]]
+                    else:
+                        msg = f"Unknown mode for {timestamp}"
+                        raise ValueError(msg)
+
+                    if time.unix_time(timestamp) in [
+                        entry.valid_from for entry in entries[syst]
+                    ]:
+                        msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
+                        raise ValueError(msg)
+                    entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
 
         for system, value in entries.items():
             entries[system] = sorted(value, key=lambda entry: entry.valid_from)
