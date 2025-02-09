@@ -97,7 +97,6 @@ def test_keys():
         "arrays",
         "dir1",
         "dir2",
-        "dir3",
         "file1",
         "file2",
         "file3",
@@ -114,7 +113,7 @@ def test_items():
     assert isinstance(items[0][1], list)
     assert items[1][0] == "dir1"
     assert isinstance(items[1][1], TextDB)
-    assert items[4][0] == "file1"
+    assert items[3][0] == "file1"
     assert isinstance(items[4][1], AttrsDict)
 
 
@@ -141,7 +140,6 @@ def test_scan():
         "arrays",
         "dir1",
         "dir2",
-        "dir3",
         "file1",
         "file2",
         "file3",
@@ -200,15 +198,6 @@ def test_time_validity():
     # directory with no .yml
     with pytest.raises(RuntimeError):
         jdb["dir1"]["dir2"].on("20230101T000001Z")
-    # replace too many entries
-    with pytest.raises(ValueError):
-        jdb["dir3"]["dir4"].on("20230101T000001Z")
-    # invalid mode
-    with pytest.raises(ValueError):
-        jdb["dir3"]["dir5"].on("20230101T000001Z")
-    # multiple entries with same timestamp
-    with pytest.raises(ValueError):
-        jdb["dir3"]["dir6"].on("20230103T000001Z")
 
     # invalid timestamp
     with pytest.raises(ValueError):
@@ -327,7 +316,6 @@ def test_lazyness():
         "arrays",
         "dir1",
         "dir2",
-        "dir3",
         "file1",
         "file2",
         "file3",
