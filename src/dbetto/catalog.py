@@ -80,15 +80,15 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         def __str__(self):
             return f"Entry(valid_from={self.valid_from}, apply={self.file})"
 
-        def __dict__(self):
+        def asdict(self):
             return {"valid_from": self.valid_from, "apply": self.file}
 
         def __iter__(self):
-            for key in self.__dict__():
+            for key in self.asdict():
                 yield key, getattr(self, key)
 
         def save_format(self, system: str = "all"):
-            dic = self.__dict__()
+            dic = self.asdict()
             dic["category"] = system
             dic["valid_from"] = time.datetime_to_str(dic["valid_from"])
             return dic
@@ -233,7 +233,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         """Write a Catalog object to a validity file"""
         ext = Path(file_name).suffix
         if ext == ".jsonl":
-            with Path(file_name).open("w") as file:
+            with Path(file_name).open("w", encoding="utf-8") as file:
                 for system, entries in self.entries.items():
                     for entry in entries:
                         file.write(json.dumps(entry.save_format(system)) + "\n")
