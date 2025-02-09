@@ -79,11 +79,14 @@ def test_catalog_build():
     with pytest.raises(ValueError):
         catalog = Catalog.get(catalog)
     # invalid mode
-    catalog = {
-        "apply": ["file1.json"],
-        "valid_from": "20220628T221955Z",
-        "mode": "test",
-    }
+    catalog = [
+        {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
+        {
+            "apply": ["file2.json", "file3.json"],
+            "valid_from": "20220629T221955Z",
+            "mode": "test",
+        },
+    ]
     with pytest.raises(ValueError):
         catalog = Catalog.get(catalog)
     # multiple entries with same timestamp
