@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from dbetto.catalog import Catalog
+from dbetto import utils
+from dbetto.catalog import Catalog, PropsStream
 from dbetto.time import datetime_to_str, str_to_datetime, unix_time
 
 log = logging.getLogger(__name__)
@@ -33,17 +34,26 @@ def test_unix_time():
         unix_time(21)
 
 
-def test_catalog_build_list():
+def test_propsstream():
+    with pytest.raises(ValueError):
+        PropsStream.get(None)
+
+    def test_generator():
+        yield {"apply": ["file1.json"], "valid_from": "20220628T221955Z"}
+        yield {"apply": ["file2.json"], "valid_from": "20220629T221955Z"}
+
+    gen = PropsStream.get(test_generator())
+    assert gen.__next__() == {"apply": ["file1.json"], "valid_from": "20220628T221955Z"}
+
+
+def test_catalog_build():
     catalog = [
         {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
-        {"apply": ["file2.json"], "valid_from": "20220629T221955Z"},
+        {"apply": "file2.json", "valid_from": "20220629T221955Z"},
     ]
     catalog = Catalog.get(catalog)
     assert catalog.valid_for("20220628T221955Z") == ["file1.json"]
     assert catalog.valid_for("20220629T221955Z") == ["file1.json", "file2.json"]
-
-
-def test_catalog_build_tuple():
     catalog = (
         {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
         {"apply": ["file2.json"], "valid_from": "20220629T221955Z"},
@@ -51,6 +61,38 @@ def test_catalog_build_tuple():
     catalog = Catalog.get(catalog)
     assert catalog.valid_for("20220628T221955Z") == ["file1.json"]
     assert catalog.valid_for("20220629T221955Z") == ["file1.json", "file2.json"]
+    # test catalog already as catalog
+    catalog = Catalog.get(catalog)
+    assert catalog.valid_for("20220628T221955Z") == ["file1.json"]
+    # invalid type
+    with pytest.raises(ValueError):
+        catalog = Catalog.get({})
+    # replace too many entries
+    catalog = (
+        {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
+        {
+            "apply": ["file2.json", "file3.json", "file4.json"],
+            "valid_from": "20220629T221955Z",
+            "mode": "replace",
+        },
+    )
+    with pytest.raises(ValueError):
+        catalog = Catalog.get(catalog)
+    # invalid mode
+    catalog = {
+        "apply": ["file1.json"],
+        "valid_from": "20220628T221955Z",
+        "mode": "test",
+    }
+    with pytest.raises(ValueError):
+        catalog = Catalog.get(catalog)
+    # multiple entries with same timestamp
+    catalog = (
+        {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
+        {"apply": ["file2.json"], "valid_from": "20220628T221955Z"},
+    )
+    with pytest.raises(ValueError):
+        catalog = Catalog.get(catalog)
 
 
 def test_catalog_valid_for():
@@ -87,43 +129,12 @@ def test_catalog_valid_for():
     assert catalog.valid_for("20220629T221955Z", system="test") == ["file1.json"]
 
 
-def test_catalog_errors():
-    # invalid type
-    with pytest.raises(ValueError):
-        catalog = Catalog.get({})
-    # replace too many entries
-    catalog = (
-        {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
-        {
-            "apply": ["file2.json", "file3.json", "file4.json"],
-            "valid_from": "20220629T221955Z",
-            "mode": "replace",
-        },
-    )
-    with pytest.raises(ValueError):
-        catalog = Catalog.get(catalog)
-    # invalid mode
-    catalog = {
-        "apply": ["file1.json"],
-        "valid_from": "20220628T221955Z",
-        "mode": "test",
-    }
-    with pytest.raises(ValueError):
-        catalog = Catalog.get(catalog)
-    # multiple entries with same timestam
-    catalog = (
-        {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
-        {"apply": ["file2.json"], "valid_from": "20220628T221955Z"},
-    )
-    with pytest.raises(ValueError):
-        catalog = Catalog.get(catalog)
-
-
 def test_catalog_write(tmpdir):
     catalog = (
         {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
         {"apply": ["file2.json"], "valid_from": "20220629T221955Z"},
     )
+    # test jsonl format
     catalog = Catalog.get(catalog)
     assert catalog.valid_for("20220628T221955Z") == ["file1.json"]
     assert catalog.valid_for("20220629T221955Z") == ["file1.json", "file2.json"]
@@ -131,8 +142,40 @@ def test_catalog_write(tmpdir):
     catalog = Catalog.get(Path(tmpdir) / "test.jsonl")
     assert catalog.valid_for("20220628T221955Z") == ["file1.json"]
     assert catalog.valid_for("20220629T221955Z") == ["file1.json", "file2.json"]
+    # test yaml format
+    catalog = (
+        {"apply": ["file1.json"], "valid_from": "20220101T221955Z"},
+        {"apply": ["file2.json"], "valid_from": "20220102T221955Z"},
+        {"apply": ["file2.json"], "valid_from": "20220103T221955Z", "mode": "remove"},
+        {
+            "apply": ["file1.json", "file2.json"],
+            "valid_from": "20220104T221955Z",
+            "mode": "replace",
+        },
+        {
+            "apply": ["file1.json", "file2.json", "file3.json"],
+            "valid_from": "20220105T221955Z",
+            "mode": "reset",
+        },
+        {
+            "apply": ["file3.json", "file4.json"],
+            "valid_from": "20220106T221955Z",
+            "mode": "replace",
+        },
+    )
+    catalog = Catalog.get(catalog)
     catalog.write_to(Path(tmpdir) / "test.yaml")
     catalog = Catalog.get(Path(tmpdir) / "test.yaml")
-    log.debug(catalog.valid_for("20220629T221955Z"))
-    assert catalog.valid_for("20220628T221955Z") == ["file1.json"]
-    assert catalog.valid_for("20220629T221955Z") == ["file1.json", "file2.json"]
+    assert catalog.valid_for("20220101T221955Z") == ["file1.json"]
+    assert catalog.valid_for("20220102T221955Z") == ["file1.json", "file2.json"]
+    # test yaml formatting
+    dic = utils.load_dict(Path(tmpdir) / "test.yaml")
+    assert "mode" not in dic[0]
+    assert dic[1]["mode"] == "append"
+    assert dic[1]["apply"] == ["file2.json"]
+    assert dic[2]["mode"] == "remove"
+    assert dic[2]["apply"] == ["file2.json"]
+    assert dic[3]["mode"] == "reset"
+    assert dic[3]["apply"] == ["file2.json"]
+    assert dic[5]["mode"] == "replace"
+    assert dic[5]["apply"] == ["file3.json", "file4.json"]
