@@ -77,15 +77,8 @@ class Catalog(namedtuple("Catalog", ["entries"])):
 
         __slots__ = ()
 
-        def __str__(self):
-            return f"Entry(valid_from={self.valid_from}, apply={self.file})"
-
         def asdict(self):
             return {"valid_from": self.valid_from, "apply": self.file}
-
-        def __iter__(self):
-            for key in self.asdict():
-                yield key, getattr(self, key)
 
         def save_format(self, system: str = "all"):
             dic = self.asdict()
