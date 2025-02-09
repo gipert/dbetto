@@ -23,6 +23,13 @@ def str_to_datetime(value):
     return datetime.strptime(value, "%Y%m%dT%H%M%SZ")
 
 
+def datetime_to_str(value):
+    """Convert a :class:`datetime.datetime` object to a string in the format %Y%m%dT%H%M%SZ."""
+    if isinstance(value, float):
+        value = datetime.fromtimestamp(value)
+    return value.strftime("%Y%m%dT%H%M%SZ")
+
+
 def unix_time(value):
     """Convert a string in the format %Y%m%dT%H%M%SZ or datetime object to Unix time value"""
     if isinstance(value, str):

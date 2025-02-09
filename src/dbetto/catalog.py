@@ -18,30 +18,38 @@ import bisect
 import collections
 import copy
 import json
+import logging
 import types
 from collections import namedtuple
+from collections.abc import Generator
 from pathlib import Path
 from string import Template
 
 from . import time, utils
+
+log = logging.getLogger(__name__)
 
 
 class PropsStream:
     """Simple class to control loading of validity files"""
 
     @staticmethod
-    def get(value):
+    def get(value: str | Path | list | Generator) -> Generator[dict, None, None]:
         if isinstance(value, (str, Path)):
             return PropsStream.read_from(value)
-
-        if isinstance(value, (collections.abc.Sequence, types.GeneratorType)):
+        if isinstance(value, collections.abc.Sequence):
+            return PropsStream.yield_list(value)
+        if isinstance(value, types.GeneratorType):
             return value
-
         msg = f"Can't get PropsStream from value of type {type(value)}"
         raise ValueError(msg)
 
     @staticmethod
-    def read_from(file_name):
+    def yield_list(value: list) -> Generator[dict, None, None]:
+        yield from value
+
+    @staticmethod
+    def read_from(file_name: str | Path) -> Generator[dict, None, None]:
         ext = Path(file_name).suffix
         # support for legacy JSONL format
         if ext == ".jsonl":
@@ -69,6 +77,22 @@ class Catalog(namedtuple("Catalog", ["entries"])):
 
         __slots__ = ()
 
+        def __str__(self):
+            return f"Entry(valid_from={self.valid_from}, apply={self.file})"
+
+        def __dict__(self):
+            return {"valid_from": self.valid_from, "apply": self.file}
+
+        def __iter__(self):
+            for key in self.__dict__():
+                yield key, getattr(self, key)
+
+        def save_format(self, system: str = "all"):
+            dic = self.__dict__()
+            dic["category"] = system
+            dic["valid_from"] = time.datetime_to_str(dic["valid_from"])
+            return dic
+
     @staticmethod
     def get(value):
         if isinstance(value, Catalog):
@@ -77,64 +101,70 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         if isinstance(value, (str, Path)):
             return Catalog.read_from(value)
 
+        if isinstance(value, collections.abc.Sequence):
+            return Catalog.build_catalog(value)
+
         msg = f"Can't get Catalog from value of type {type(value)}"
         raise ValueError(msg)
 
-    @staticmethod
-    def read_from(file_name):
-        """Read from a valdiity file and build a Catalog object"""
-        ext = Path(file_name).suffix
+    def build_catalog(
+        propstream: str | Path | list | Generator, mode_default: str = "append"
+    ) -> Catalog:
+        """Build a Catalog object from a validity file/stream"""
         entries = {}
-        for props in PropsStream.get(file_name):
+        for props in PropsStream.get(propstream):
             timestamp = props["valid_from"]
             system = props.get("category", "all")
             if not isinstance(system, list):
                 system = [system]
             file_key = props["apply"]
+            if isinstance(file_key, str):
+                file_key = [file_key]
             for syst in system:
                 if syst not in entries:
                     entries[syst] = []
-
-                # support for legacy JSONL format
-                if ext == "jsonl":
-                    entries[system].append(
-                        Catalog.Entry(time.unix_time(timestamp), file_key)
-                    )
-
+                mode = props.get("mode", mode_default)
+                mode = "reset" if len(entries[syst]) == 0 else mode
+                if mode == "reset":
+                    new = file_key
+                elif mode == "append":
+                    new = entries[syst][-1].file.copy() + file_key
+                elif mode == "remove":
+                    new = entries[syst][-1].file.copy()
+                    for file in file_key:
+                        new.remove(file)
+                elif mode == "replace":
+                    new = entries[syst][-1].file.copy()
+                    if len(file_key) != 2:
+                        msg = f"Invalid number of elements in replace mode: {len(file_key)}"
+                        raise ValueError(msg)
+                    new.remove(file_key[0])
+                    new += [file_key[1]]
                 else:
-                    mode = props.get("mode", "append")
-                    mode = "reset" if len(entries[syst]) == 0 else mode
-                    if mode == "reset":
-                        new = file_key
-                    elif mode == "append":
-                        new = entries[syst][-1].file.copy() + file_key
-                    elif mode == "remove":
-                        new = entries[syst][-1].file.copy()
-                        for file in file_key:
-                            new.remove(file)
-                    elif mode == "replace":
-                        new = entries[syst][-1].file.copy()
-                        if len(file_key) != 2:
-                            msg = f"Invalid number of elements in replace mode: {len(file_key)}"
-                            raise ValueError(msg)
-                        new.remove(file_key[0])
-                        new += [file_key[1]]
-                    else:
-                        msg = f"Unknown mode for {timestamp}"
-                        raise ValueError(msg)
+                    msg = f"Unknown mode for {timestamp}"
+                    raise ValueError(msg)
 
-                    if time.unix_time(timestamp) in [
-                        entry.valid_from for entry in entries[syst]
-                    ]:
-                        msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
-                        raise ValueError(msg)
-                    entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
-
+                if time.unix_time(timestamp) in [
+                    entry.valid_from for entry in entries[syst]
+                ]:
+                    msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
+                    raise ValueError(msg)
+                entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
         for system, value in entries.items():
             entries[system] = sorted(value, key=lambda entry: entry.valid_from)
         return Catalog(entries)
 
-    def valid_for(self, timestamp, system="all", allow_none=False):
+    @staticmethod
+    def read_from(file_name: str | Path) -> Catalog:
+        """Read from a validity file and build a Catalog object"""
+        ext = Path(file_name).suffix
+        return Catalog.build_catalog(
+            file_name, mode_default="reset" if ext == ".jsonl" else "append"
+        )  # difference between old jsonl and new yaml is just the change of default mode from append to reset
+
+    def valid_for(
+        self, timestamp: str, system: str = "all", allow_none: bool = False
+    ) -> list:
         """Get the valid entries for a given timestamp and system"""
         if system in self.entries:
             valid_from = [entry.valid_from for entry in self.entries[system]]
@@ -161,10 +191,53 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         raise RuntimeError(msg)
 
     @staticmethod
-    def get_files(catalog_file, timestamp, category="all"):
+    def get_files(
+        catalog_file: str | Path, timestamp: str, category: str = "all"
+    ) -> list:
         """Helper function to get the files for a given timestamp and category"""
         catalog = Catalog.read_from(catalog_file)
-        return Catalog.valid_for(catalog, timestamp, category)
+        return catalog.valid_for(timestamp, category)
+
+    def get_dict_format(self) -> list:
+        write_list = []
+        for system, entries in self.entries.items():
+            for entry in entries:
+                write_list.append(entry.save_format(system))
+        current_files = []
+        for entry in write_list:
+            files = entry["apply"].copy()
+            if len(current_files) > 0:
+                set1 = set(current_files.copy())
+                set2 = set(files)
+                new_files = set2 - set1
+                removed_files = set1 - set2
+
+                if len(new_files) > 0 and len(removed_files) == 0:
+                    entry["apply"] = list(new_files)
+                    entry["mode"] = "append"
+                elif len(new_files) == 0 and len(removed_files) > 0:
+                    entry["apply"] = list(removed_files)
+                    entry["mode"] = "remove"
+                elif len(new_files) == 1 and len(removed_files) == 1 and len(files) > 1:
+                    entry["apply"] = list(removed_files) + list(new_files)
+                    entry["mode"] = "replace"
+                else:
+                    entry["mode"] = "reset"
+            if entry["category"] == "all":
+                entry.pop("category")
+            current_files = files
+        return write_list
+
+    def write_to(self, file_name: str | Path) -> None:
+        """Write a Catalog object to a validity file"""
+        ext = Path(file_name).suffix
+        if ext == ".jsonl":
+            with Path(file_name).open("w") as file:
+                for system, entries in self.entries.items():
+                    for entry in entries:
+                        file.write(json.dumps(entry.save_format(system)) + "\n")
+        else:
+            utils.write_dict(file_name, self.get_dict_format())
 
 
 class Props:
