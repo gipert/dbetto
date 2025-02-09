@@ -107,6 +107,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         msg = f"Can't get Catalog from value of type {type(value)}"
         raise ValueError(msg)
 
+    @staticmethod
     def build_catalog(
         propstream: str | Path | list | Generator, mode_default: str = "append"
     ) -> Catalog:
