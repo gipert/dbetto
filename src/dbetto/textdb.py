@@ -115,7 +115,7 @@ class TextDB:
             ]
         )
 
-    def reset(self) -> None:
+    def reset(self, rescan: bool = True) -> None:
         """Reset this database instance.
 
         Reinstantiates the internal :class:`~.attrsdict.AttrsDict` store and
@@ -124,7 +124,7 @@ class TextDB:
         """
         self.__store__ = AttrsDict()
 
-        if not self.__lazy__:
+        if rescan and not self.__lazy__:
             self.scan()
 
     def scan(self, recursive: bool = True, subdir: str = ".") -> None:
