@@ -159,7 +159,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         return Catalog.build_catalog(
             file_name,
             mode_default="reset" if ext == ".jsonl" else "append",
-            suppress_duplicate_check=True,
+            suppress_duplicate_check=bool(ext == ".jsonl"),
         )  # difference between old jsonl and new yaml is just the change of default mode from append to reset
 
     def valid_for(
