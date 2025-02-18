@@ -96,6 +96,11 @@ def test_catalog_build():
     )
     with pytest.raises(ValueError):
         catalog = Catalog.get(catalog)
+    # multiple entries with same timestamp warning suppressed
+    catalog = Catalog.build_catalog(
+        PropsStream.get(catalog), suppress_duplicate_check=True
+    )
+    assert catalog.valid_for("20220628T221955Z") == ["file1.json", "file2.json"]
 
 
 def test_catalog_valid_for():

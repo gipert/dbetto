@@ -102,7 +102,9 @@ class Catalog(namedtuple("Catalog", ["entries"])):
 
     @staticmethod
     def build_catalog(
-        propstream: str | Path | list | Generator, mode_default: str = "append"
+        propstream: str | Path | list | Generator,
+        mode_default: str = "append",
+        suppress_duplicate_check: bool = False,
     ) -> Catalog:
         """Build a Catalog object from a validity file/stream"""
         entries = {}
@@ -138,9 +140,11 @@ class Catalog(namedtuple("Catalog", ["entries"])):
                     msg = f"Unknown mode for {timestamp}"
                     raise ValueError(msg)
 
-                if time.unix_time(timestamp) in [
-                    entry.valid_from for entry in entries[syst]
-                ]:
+                if (
+                    time.unix_time(timestamp)
+                    in [entry.valid_from for entry in entries[syst]]
+                    and suppress_duplicate_check is False
+                ):
                     msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
                     raise ValueError(msg)
                 entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
@@ -153,7 +157,9 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         """Read from a validity file and build a Catalog object"""
         ext = Path(file_name).suffix
         return Catalog.build_catalog(
-            file_name, mode_default="reset" if ext == ".jsonl" else "append"
+            file_name,
+            mode_default="reset" if ext == ".jsonl" else "append",
+            suppress_duplicate_check=True,
         )  # difference between old jsonl and new yaml is just the change of default mode from append to reset
 
     def valid_for(
