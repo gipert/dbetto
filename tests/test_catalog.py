@@ -13,6 +13,8 @@ from dbetto.time import datetime_to_str, str_to_datetime, unix_time
 
 log = logging.getLogger(__name__)
 
+testolddb = Path(__file__).parent / "test_validities"
+
 
 def test_to_datetime():
     assert str_to_datetime("20230501T205951Z") == datetime(2023, 5, 1, 20, 59, 51)
@@ -187,3 +189,20 @@ def test_catalog_write(tmpdir):
     assert dic[3]["apply"] == ["file2.json"]
     assert dic[5]["mode"] == "replace"
     assert dic[5]["apply"] == ["file3.json", "file4.json"]
+
+
+def test_validity_files():
+    # test jsonl duplicates
+    cat = Catalog.read_from(testolddb / "validity_duplicates.jsonl")
+    assert cat.valid_for("20230101T000000Z") == ["file2.json"]
+    # test yaml duplicates
+    with pytest.raises(ValueError):
+        Catalog.read_from(testolddb / "validity_duplicates.yaml")
+    # test yaml default to append
+    cat = Catalog.read_from(testolddb / "validity_append.yaml")
+    assert cat.valid_for("20230101T000000Z") == ["file1.json"]
+    assert cat.valid_for("20230102T000000Z") == ["file1.json", "file2.json"]
+    # test jsonl default to reset
+    cat = Catalog.read_from(testolddb / "validity_reset.jsonl")
+    assert cat.valid_for("20230101T000000Z") == ["file1.json"]
+    assert cat.valid_for("20230102T000000Z") == ["file2.json"]
