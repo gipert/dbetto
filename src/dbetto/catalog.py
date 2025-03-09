@@ -246,7 +246,7 @@ class Props:
     @staticmethod
     def read_from(sources, subst_pathvar=False, trim_null=False):
         def read_impl(sources):
-            if isinstance(sources, str):
+            if isinstance(sources, (str, Path)):
                 file_name = sources
                 result = utils.load_dict(file_name)
                 if subst_pathvar:
