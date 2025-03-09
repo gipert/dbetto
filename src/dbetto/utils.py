@@ -59,7 +59,7 @@ def load_dict(fname: str, ftype: str | None = None) -> dict:
         if ftype == "json":
             return json.load(f)
         if ftype == "yaml":
-            return yaml.safe_load(f, loader=Loader)
+            return yaml.safe_load(f, Loader=Loader)
 
         msg = f"unsupported file format {ftype}"
         raise NotImplementedError(msg)
