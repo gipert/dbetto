@@ -34,6 +34,12 @@ except ImportError:
 # values without a decimal point e.g. 5e-6 will be read as a str and not a float
 # this function will ensure that all floats are represented as floats
 def float_representer(dumper, value):
+    if str(value) == "nan":
+        return dumper.represent_scalar("tag:yaml.org,2002:float", ".nan")
+    if str(value) == "inf":
+        return dumper.represent_scalar("tag:yaml.org,2002:float", ".inf")
+    if str(value) == "-inf":
+        return dumper.represent_scalar("tag:yaml.org,2002:float", "-.inf")
     if "." not in str(value):
         return dumper.represent_scalar("tag:yaml.org,2002:float", f"{value:.1e}")
     return dumper.represent_scalar("tag:yaml.org,2002:float", str(value))
@@ -59,7 +65,7 @@ def load_dict(fname: str, ftype: str | None = None) -> dict:
         if ftype == "json":
             return json.load(f)
         if ftype == "yaml":
-            return yaml.safe_load(f, Loader=Loader)
+            return yaml.load(f, Loader=Loader)
 
         msg = f"unsupported file format {ftype}"
         raise NotImplementedError(msg)
