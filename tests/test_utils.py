@@ -16,8 +16,8 @@ def test_catalog_write(tmpdir):
     }
     Props.write_to(Path(tmpdir) / "test.yaml", test_dict)
     test_dict = Props.read_from(Path(tmpdir) / "test.yaml")
-    assert isinstance(float(test_dict["a"]))
-    assert isinstance(float(test_dict["b"]))
-    assert isinstance(float(test_dict["c"]))
-    assert isinstance(float(test_dict["d"]))
-    assert isinstance(float(test_dict["e"]))
+    assert isinstance(test_dict["a"], float)
+    assert isinstance(test_dict["b"], float)
+    assert isinstance(test_dict["c"], float)
+    assert isinstance(test_dict["d"], float)
+    assert isinstance(test_dict["e"], float)
