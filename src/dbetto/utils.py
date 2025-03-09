@@ -25,6 +25,22 @@ log = logging.getLogger(__name__)
 
 __file_extensions__ = {"json": [".json"], "yaml": [".yaml", ".yml"]}
 
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
+
+
+# values without a decimal point e.g. 5e-6 will be read as a str and not a float
+# this function will ensure that all floats are represented as floats
+def float_representer(dumper, value):
+    if "." not in str(value):
+        return dumper.represent_scalar("tag:yaml.org,2002:float", f"{value:.1e}")
+    return dumper.represent_scalar("tag:yaml.org,2002:float", str(value))
+
+
+yaml.add_representer(float, float_representer)
+
 
 def load_dict(fname: str, ftype: str | None = None) -> dict:
     """Load a text file as a Python dict."""
@@ -43,7 +59,7 @@ def load_dict(fname: str, ftype: str | None = None) -> dict:
         if ftype == "json":
             return json.load(f)
         if ftype == "yaml":
-            return yaml.safe_load(f)
+            return yaml.safe_load(f, loader=Loader)
 
         msg = f"unsupported file format {ftype}"
         raise NotImplementedError(msg)
