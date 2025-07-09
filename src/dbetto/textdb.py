@@ -224,7 +224,11 @@ class TextDB:
 
         for file in files:
             # absolute path
-            file_abs = self.__path__.rglob(file)
+            file_abs = list(self.__path__.rglob(file))
+
+            if not file_abs:
+                msg = f"{file} not found in the database root path {self.__path__!s}"
+                raise RuntimeError(msg)
 
             # combine dictionaries
             for f in file_abs:

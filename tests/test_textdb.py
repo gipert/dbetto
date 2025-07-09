@@ -203,6 +203,10 @@ def test_time_validity():
     with pytest.raises(ValueError):
         jdb.dir1.on("20230627T2335002Z")
 
+    # non-existing file referenced in validity.
+    with pytest.raises(RuntimeError, match="file7.json not found in the database"):
+        jdb.dir3.on("20230103T120000Z")
+
     # test usage of datetime object
     tstamp = datetime(2023, 6, 28, 23, 35, 00, tzinfo=timezone.utc)
     assert jdb.dir1.on(tstamp).data == 1
