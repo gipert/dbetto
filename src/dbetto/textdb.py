@@ -325,7 +325,7 @@ class TextDB:
                             found = True
 
                 if not found:
-                    msg = f"{obj.with_stem(ext_list)} is not a valid file or directory"
+                    msg = f"{obj}{ext_list} is not a valid file or directory"
                     raise FileNotFoundError(msg)
 
                 # if it's a valid file, construct an AttrsDict object
