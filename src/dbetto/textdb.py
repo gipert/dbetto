@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import os
 import json
 import logging
 import re
@@ -68,7 +69,7 @@ class TextDB:
     """
 
     def __init__(
-        self, path: str | Path, lazy: str | bool = False, hidden: bool = False
+        self, path: str | Path, lazy: str | bool = False, hidden: bool = False, allow_up_tree = False
     ) -> None:
         """Construct a :class:`.TextDB` object.
 
@@ -82,6 +83,8 @@ class TextDB:
             session.
         hidden
             ignore hidden (i.e. starting with ".") files of directories.
+        allow_up_tree
+            allow paths that go up the tree (i.e. contain "..").
         """
         if isinstance(lazy, bool):
             self.__lazy__ = lazy
@@ -92,6 +95,7 @@ class TextDB:
             raise ValueError(msg)
 
         self.__hidden__ = hidden
+        self.__allow_up_tree__ = allow_up_tree
         self.__path__ = Path(path).expanduser().resolve()
 
         if not self.__path__.is_dir():
@@ -270,16 +274,32 @@ class TextDB:
     def __getitem__(self, item: str | Path) -> TextDB | AttrsDict | list | None:
         """Access files or directories in the database."""
         # resolve relative paths / links, but keep it relative to self.__path__
+        # up the tree ("..") outside self.__path__ is only allowed if 
+        # self.__allow_up_tree__ is True
         item = Path(item)
 
         if item.is_absolute() and item.is_relative_to(self.__path__):
-            item = item.expanduser().resolve().relative_to(self.__path__)
+            try:
+                item = item.expanduser().resolve().relative_to(self.__path__)
+            except ValueError:
+                if self.__allow_up_tree__:
+                    # Path.relative_to(walkup=True) only in python 3.12+
+                    item = Path(os.path.relpath(item, self.__path__))
+                else:
+                    raise
         elif not item.is_absolute():
-            item = (
-                (self.__path__ / item).expanduser().resolve().relative_to(self.__path__)
-            )
+            try:
+                item = (
+                    (self.__path__ / item).expanduser().resolve().relative_to(self.__path__)
+                )
+            except ValueError:
+                if self.__allow_up_tree__:
+                    # Path.relative_to(walkup=True) only in python 3.12+
+                    item = Path(os.path.relpath((self.__path__ / item).expanduser().resolve(), self.__path__))
+                else:
+                    raise
         else:
-            msg = f"{item} lies outside the database root path {self.__path__!s}"
+            msg = f"{item} is not relative to the database root path {self.__path__!s}"
             raise ValueError(msg)
 
         ext_list = "[" + "|".join(self.__extensions__) + "]"
@@ -302,12 +322,13 @@ class TextDB:
             obj = db_ptr.__path__ / item.name
 
             # do not consider hidden files
-            if not self.__hidden__ and obj.name.startswith("."):
+            if not self.__hidden__ and (obj.name.startswith(".") and not obj.name.startswith("..")):
+                log.debug(f"skipping hidden file: {obj}")
                 return None
 
             # if directory, construct another TextDB object
             if obj.is_dir():
-                db_ptr.__store__[item_id] = TextDB(obj, lazy=self.__lazy__)
+                db_ptr.__store__[item_id] = TextDB(obj, lazy=self.__lazy__, allow_up_tree=self.__allow_up_tree__)
 
             else:
                 # try to attach an extension if file cannot be found
