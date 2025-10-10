@@ -15,9 +15,9 @@
 
 from __future__ import annotations
 
-import os
 import json
 import logging
+import os
 import re
 import sys
 from collections.abc import Iterator
@@ -69,7 +69,11 @@ class TextDB:
     """
 
     def __init__(
-        self, path: str | Path, lazy: str | bool = False, hidden: bool = False, allow_up_tree = False
+        self,
+        path: str | Path,
+        lazy: str | bool = False,
+        hidden: bool = False,
+        allow_up_tree=False,
     ) -> None:
         """Construct a :class:`.TextDB` object.
 
@@ -274,7 +278,7 @@ class TextDB:
     def __getitem__(self, item: str | Path) -> TextDB | AttrsDict | list | None:
         """Access files or directories in the database."""
         # resolve relative paths / links, but keep it relative to self.__path__
-        # up the tree ("..") outside self.__path__ is only allowed if 
+        # up the tree ("..") outside self.__path__ is only allowed if
         # self.__allow_up_tree__ is True
         item = Path(item)
 
@@ -290,12 +294,19 @@ class TextDB:
         elif not item.is_absolute():
             try:
                 item = (
-                    (self.__path__ / item).expanduser().resolve().relative_to(self.__path__)
+                    (self.__path__ / item)
+                    .expanduser()
+                    .resolve()
+                    .relative_to(self.__path__)
                 )
             except ValueError:
                 if self.__allow_up_tree__:
                     # Path.relative_to(walkup=True) only in python 3.12+
-                    item = Path(os.path.relpath((self.__path__ / item).expanduser().resolve(), self.__path__))
+                    item = Path(
+                        os.path.relpath(
+                            (self.__path__ / item).expanduser().resolve(), self.__path__
+                        )
+                    )
                 else:
                     raise
         else:
@@ -322,13 +333,21 @@ class TextDB:
             obj = db_ptr.__path__ / item.name
 
             # do not consider hidden files
-            if not self.__hidden__ and (obj.name.startswith(".") and not obj.name.startswith("..")):
-                log.debug(f"skipping hidden file: {obj}")
+            if not self.__hidden__ and (
+                obj.name.startswith(".") and not obj.name.startswith("..")
+            ):
+                msg = f"skipping hidden file: {obj}"
+                log.debug(msg)
                 return None
 
             # if directory, construct another TextDB object
             if obj.is_dir():
-                db_ptr.__store__[item_id] = TextDB(obj, lazy=self.__lazy__, hidden=self.__hidden__, allow_up_tree=self.__allow_up_tree__)
+                db_ptr.__store__[item_id] = TextDB(
+                    obj,
+                    lazy=self.__lazy__,
+                    hidden=self.__hidden__,
+                    allow_up_tree=self.__allow_up_tree__,
+                )
 
             else:
                 # try to attach an extension if file cannot be found
