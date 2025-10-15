@@ -132,6 +132,7 @@ def test_scan():
     jdb.scan(recursive=True)
 
     assert sorted(jdb.__dict__.keys()) == [
+        "__allow_up_tree__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -149,6 +150,7 @@ def test_scan():
     jdb.scan(recursive=False)
 
     assert sorted(jdb.__dict__.keys()) == [
+        "__allow_up_tree__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -164,6 +166,7 @@ def test_scan():
     jdb.scan(recursive=False, subdir="dir1")
 
     assert sorted(jdb.__dict__.keys()) == [
+        "__allow_up_tree__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -292,6 +295,7 @@ def test_lazyness():
     jdb = TextDB(testdb, lazy="auto")
     assert jdb.__lazy__ is True
     assert sorted(jdb.__dict__.keys()) == [
+        "__allow_up_tree__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -302,6 +306,7 @@ def test_lazyness():
     jdb = TextDB(testdb, lazy=True)
     assert jdb.__lazy__ is True
     assert sorted(jdb.__dict__.keys()) == [
+        "__allow_up_tree__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -312,6 +317,7 @@ def test_lazyness():
     jdb = TextDB(testdb, lazy=False)
     assert jdb.__lazy__ is False
     assert sorted(jdb.__dict__.keys()) == [
+        "__allow_up_tree__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
