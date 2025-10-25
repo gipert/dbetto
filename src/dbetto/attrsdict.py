@@ -93,12 +93,12 @@ class AttrsDict(dict):
 
         def _convert(value: Any) -> Any:
             if isinstance(value, AttrsDict):
-                return {key: _convert(val) for key, val in value.items()}
+                return {key: _convert(val) for key, val in dict.items(value)}
             if isinstance(value, list):
                 return [_convert(item) for item in value]
             return value
 
-        return {key: _convert(val) for key, val in self.items()}
+        return {key: _convert(val) for key, val in dict.items(self)}
 
     def __getattr__(self, name: str) -> Any:
         try:
