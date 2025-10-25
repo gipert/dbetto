@@ -237,7 +237,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
                     for entry in entries:
                         file.write(json.dumps(entry.save_format(system)) + "\n")
         else:
-            utils.write_dict(file_name, self.get_dict_format())
+            utils.write_dict(self.get_dict_format(), file_name)
 
 
 class Props:
@@ -273,7 +273,7 @@ class Props:
 
     @staticmethod
     def write_to(file_name, obj, ftype: str | None = None):
-        utils.write_dict(file_name, obj, ftype)
+        utils.write_dict(obj, file_name, ftype)
 
     @staticmethod
     def add_to(props_a, props_b):

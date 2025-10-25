@@ -83,6 +83,23 @@ class AttrsDict(dict):
 
     __setattr__ = __setitem__
 
+    def to_dict(self) -> dict:
+        """Return a plain :class:`dict` representation of the object.
+
+        Nested :class:`AttrsDict` instances and lists are recursively
+        converted to built-in containers to ensure the result is fully
+        serialisable by callers expecting standard dictionaries.
+        """
+
+        def _convert(value: Any) -> Any:
+            if isinstance(value, AttrsDict):
+                return {key: _convert(val) for key, val in dict.items(value)}
+            if isinstance(value, list):
+                return [_convert(item) for item in value]
+            return value
+
+        return {key: _convert(val) for key, val in dict.items(self)}
+
     def __getattr__(self, name: str) -> Any:
         try:
             super().__getattr__(name)
