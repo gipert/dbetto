@@ -71,8 +71,8 @@ def load_dict(fname: str, ftype: str | None = None) -> dict:
         raise NotImplementedError(msg)
 
 
-def write_dict(fname: str, obj: dict, ftype: str | None = None) -> dict:
-    """Load a text file as a Python dict."""
+def write_dict(obj: dict, fname: str, ftype: str | None = None) -> dict:
+    """Write a Python dict to a text file."""
     fname = Path(fname)
 
     # determine file type from extension
