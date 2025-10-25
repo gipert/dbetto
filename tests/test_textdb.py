@@ -204,7 +204,7 @@ def test_time_validity():
         jdb.dir1.on("20230627T2335002Z")
 
     # non-existing file referenced in validity.
-    with pytest.raises(RuntimeError, match="file7.json not found in the database"):
+    with pytest.raises(RuntimeError, match=r"file7.json not found in the database"):
         jdb.dir3.on("20230103T120000Z")
 
     # test usage of datetime object
