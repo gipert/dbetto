@@ -324,3 +324,17 @@ def test_lazyness():
         "file2",
         "file3",
     ]
+
+
+def test_hidden():
+    jdb = TextDB(testdb, hidden=True, lazy=False)
+    assert getattr(jdb, "__hidden__", False) is True
+
+    assert isinstance(jdb.dir1, TextDB)
+    assert getattr(jdb.dir1, "__hidden__", False) is True
+
+    assert isinstance(jdb.dir1.dir2, TextDB)
+    assert getattr(jdb.dir1.dir2, "__hidden__", False) is True
+
+    assert isinstance(jdb.dir2, TextDB)
+    assert getattr(jdb.dir2, "__hidden__", False) is True
