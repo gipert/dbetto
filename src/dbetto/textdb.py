@@ -307,7 +307,9 @@ class TextDB:
 
             # if directory, construct another TextDB object
             if obj.is_dir():
-                db_ptr.__store__[item_id] = TextDB(obj, lazy=self.__lazy__)
+                db_ptr.__store__[item_id] = TextDB(
+                    obj, lazy=self.__lazy__, hidden=self.__hidden__
+                )
 
             else:
                 # try to attach an extension if file cannot be found
