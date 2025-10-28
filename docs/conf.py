@@ -14,7 +14,6 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
-    "sphinx.ext.intersphinx",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "sphinx_inline_tabs",
@@ -53,10 +52,6 @@ html_theme_options: dict[str, Any] = {
 myst_enable_extensions = [
     "colon_fence",
 ]
-
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-}
 
 nitpick_ignore = [
     ("py:class", "_io.StringIO"),
