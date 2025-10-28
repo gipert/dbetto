@@ -333,7 +333,9 @@ class TextDB:
                 if isinstance(loaded, dict):
                     loaded = AttrsDict(loaded)
                     Props.subst_vars(loaded, var_values={"_": self.__path__})
-                else:  # must be a list, check if there are dicts inside to convert
+                elif (
+                    loaded is not None
+                ):  # must be a list, check if there are dicts inside to convert
                     for i, el in enumerate(loaded):
                         if isinstance(el, dict):
                             loaded[i] = AttrsDict(el)
