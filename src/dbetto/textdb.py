@@ -388,10 +388,18 @@ class TextDB:
 
     def __setstate__(self, state: dict) -> None:
         """Restore internal state during unpickling."""
-        self.__path__ = Path(state["__path__"]) if not isinstance(state["__path__"], Path) else state["__path__"]
+        self.__path__ = (
+            Path(state["__path__"])
+            if not isinstance(state["__path__"], Path)
+            else state["__path__"]
+        )
         self.__lazy__ = state["__lazy__"]
         self.__hidden__ = state["__hidden__"]
-        self.__ftypes__ = set(state["__ftypes__"]) if not isinstance(state["__ftypes__"], set) else state["__ftypes__"]
+        self.__ftypes__ = (
+            set(state["__ftypes__"])
+            if not isinstance(state["__ftypes__"], set)
+            else state["__ftypes__"]
+        )
         self.__store__ = state["__store__"]
 
     def __contains__(self, value: str) -> bool:
