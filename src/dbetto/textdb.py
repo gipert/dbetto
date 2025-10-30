@@ -375,6 +375,25 @@ class TextDB:
 
         return self.__store__ | other
 
+    # Ensure pickling safety by explicitly controlling serialized state.
+    def __getstate__(self) -> dict:
+        """Return the internal state for pickling."""
+        return {
+            "__path__": self.__path__,
+            "__lazy__": self.__lazy__,
+            "__hidden__": self.__hidden__,
+            "__ftypes__": self.__ftypes__,
+            "__store__": self.__store__,
+        }
+
+    def __setstate__(self, state: dict) -> None:
+        """Restore internal state during unpickling."""
+        self.__path__ = Path(state["__path__"]) if not isinstance(state["__path__"], Path) else state["__path__"]
+        self.__lazy__ = state["__lazy__"]
+        self.__hidden__ = state["__hidden__"]
+        self.__ftypes__ = set(state["__ftypes__"]) if not isinstance(state["__ftypes__"], set) else state["__ftypes__"]
+        self.__store__ = state["__store__"]
+
     def __contains__(self, value: str) -> bool:
         return self.__store__.__contains__(value)
 
