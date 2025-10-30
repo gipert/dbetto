@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pickle
 from pathlib import Path
 
@@ -32,9 +34,7 @@ def test_attrsdict_pickle_roundtrip():
 
 def test_textdb_pickle_roundtrip(tmp_path: Path):
     # Create a small database
-    (tmp_path / "file1.json").write_text(
-        '{"id": 1, "name": "alpha"}', encoding="utf-8"
-    )
+    (tmp_path / "file1.json").write_text('{"id": 1, "name": "alpha"}', encoding="utf-8")
     (tmp_path / "file2.yaml").write_text("id: 2\nname: beta\n", encoding="utf-8")
     sub = tmp_path / "dir1"
     sub.mkdir()
