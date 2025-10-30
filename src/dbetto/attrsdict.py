@@ -262,3 +262,16 @@ class AttrsDict(dict):
     def reset(self) -> None:
         """Reset this instance by removing all cached data."""
         super().__setattr__("__cached_remaps__", {})
+
+    # Make pickling safe by serializing only the internal cached state as attributes.
+    def __getstate__(self) -> dict:
+        """Return the instance-specific state for pickling."""
+        try:
+            cached = super().__getattribute__("__cached_remaps__")
+        except AttributeError:
+            cached = {}
+        return {"__cached_remaps__": cached}
+
+    def __setstate__(self, state: dict) -> None:
+        """Restore the instance-specific state during unpickling."""
+        super().__setattr__("__cached_remaps__", state.get("__cached_remaps__", {}))
