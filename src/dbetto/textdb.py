@@ -101,6 +101,7 @@ class TextDB:
         self.__store__ = AttrsDict()
         self.__ftypes__ = {"json", "yaml"}
         self.__validity_file__ = None
+        self.__catalog__ = None
 
         if not self.__lazy__:
             self.scan()
@@ -125,6 +126,7 @@ class TextDB:
         """
         self.__store__ = AttrsDict()
         self.__validity_file__ = None
+        self.__catalog__ = None
 
         if rescan and not self.__lazy__:
             self.scan()
@@ -160,11 +162,13 @@ class TextDB:
         return self.__store__.items()
 
     def _find_validity_file(self) -> None:
-        """Find and cache the validity file path.
+        """Find and cache the validity file path and parsed catalog.
 
-        This method searches for a validity file with supported extensions
-        and caches its path in __validity_file__. The cached path is reused
-        on subsequent calls to .on() to avoid repeated filesystem calls.
+        This method searches for a validity file with supported extensions,
+        caches its path in __validity_file__, and parses it into a Catalog
+        object cached in __catalog__. The cached objects are reused on
+        subsequent calls to .on() to avoid repeated filesystem and parsing
+        operations.
 
         Raises
         ------
@@ -190,6 +194,8 @@ class TextDB:
             raise RuntimeError(msg)
 
         self.__validity_file__ = validity_file
+        # Parse and cache the catalog to avoid re-parsing on every .on() call
+        self.__catalog__ = Catalog.read_from(validity_file)
 
     def on(
         self, timestamp: str | datetime, pattern: str | None = None, system: str = "all"
@@ -217,14 +223,12 @@ class TextDB:
         system
             query only a data taking "system" (e.g. 'all', 'phy', 'cal', 'lar', ...)
         """
-        # Use cached validity file if available, otherwise find it
+        # Use cached validity file and catalog if available, otherwise find/parse it
         if self.__validity_file__ is None:
             self._find_validity_file()
 
-        validity_file = self.__validity_file__
-
-        # parse validity file and return requested files
-        file_list = Catalog.get_files(str(validity_file), timestamp, system)
+        # Use the cached catalog instead of re-parsing the validity file
+        file_list = self.__catalog__.valid_for(timestamp, system)
 
         # select only files matching pattern, if specified
         if pattern is not None:
@@ -407,6 +411,7 @@ class TextDB:
             "__ftypes__": self.__ftypes__,
             "__store__": self.__store__,
             "__validity_file__": self.__validity_file__,
+            "__catalog__": self.__catalog__,
         }
 
     def __setstate__(self, state: dict) -> None:
@@ -425,6 +430,7 @@ class TextDB:
         )
         self.__store__ = state["__store__"]
         self.__validity_file__ = state.get("__validity_file__")
+        self.__catalog__ = state.get("__catalog__")
 
     def __contains__(self, value: str) -> bool:
         return self.__store__.__contains__(value)

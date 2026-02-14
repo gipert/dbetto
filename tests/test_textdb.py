@@ -132,6 +132,7 @@ def test_scan():
     jdb.scan(recursive=True)
 
     assert sorted(jdb.__dict__.keys()) == [
+        "__catalog__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -150,6 +151,7 @@ def test_scan():
     jdb.scan(recursive=False)
 
     assert sorted(jdb.__dict__.keys()) == [
+        "__catalog__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -166,6 +168,7 @@ def test_scan():
     jdb.scan(recursive=False, subdir="dir1")
 
     assert sorted(jdb.__dict__.keys()) == [
+        "__catalog__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -295,6 +298,7 @@ def test_lazyness():
     jdb = TextDB(testdb, lazy="auto")
     assert jdb.__lazy__ is True
     assert sorted(jdb.__dict__.keys()) == [
+        "__catalog__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -306,6 +310,7 @@ def test_lazyness():
     jdb = TextDB(testdb, lazy=True)
     assert jdb.__lazy__ is True
     assert sorted(jdb.__dict__.keys()) == [
+        "__catalog__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -317,6 +322,7 @@ def test_lazyness():
     jdb = TextDB(testdb, lazy=False)
     assert jdb.__lazy__ is False
     assert sorted(jdb.__dict__.keys()) == [
+        "__catalog__",
         "__ftypes__",
         "__hidden__",
         "__lazy__",
@@ -347,25 +353,30 @@ def test_hidden():
 
 
 def test_validity_file_caching():
-    """Test that validity file path is cached after first .on() call."""
+    """Test that validity file path and catalog are cached after first .on() call."""
     jdb = TextDB(testdb, lazy=False)
 
-    # Initially, validity_file should be None for the root db
+    # Initially, validity_file and catalog should be None for the root db
     assert jdb.__validity_file__ is None
+    assert jdb.__catalog__ is None
 
-    # After first .on() call on dir1 subdirectory, validity_file should be cached
+    # After first .on() call on dir1 subdirectory, both should be cached
     jdb.dir1.on("20230101T000001Z")
     assert jdb.dir1.__validity_file__ is not None
+    assert jdb.dir1.__catalog__ is not None
 
     # Verify the cached path is correct
     assert jdb.dir1.__validity_file__.name == "validity.yaml"
     assert jdb.dir1.__validity_file__.parent == jdb.dir1.__path__
 
-    # Second .on() call should use cached validity_file (no filesystem calls)
+    # Second .on() call should use cached validity_file and catalog (no I/O)
     cached_file = jdb.dir1.__validity_file__
+    cached_catalog = jdb.dir1.__catalog__
     jdb.dir1.on("20230102T000000Z")
     assert jdb.dir1.__validity_file__ is cached_file  # Same object
+    assert jdb.dir1.__catalog__ is cached_catalog  # Same object
 
-    # Reset should clear the cache
+    # Reset should clear both caches
     jdb.dir1.reset()
     assert jdb.dir1.__validity_file__ is None
+    assert jdb.dir1.__catalog__ is None
