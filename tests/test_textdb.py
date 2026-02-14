@@ -369,4 +369,3 @@ def test_validity_file_caching():
     # Reset should clear the cache
     jdb.dir1.reset()
     assert jdb.dir1.__validity_file__ is None
-

@@ -424,7 +424,7 @@ class TextDB:
             else state["__ftypes__"]
         )
         self.__store__ = state["__store__"]
-        self.__validity_file__ = state.get("__validity_file__", None)
+        self.__validity_file__ = state.get("__validity_file__")
 
     def __contains__(self, value: str) -> bool:
         return self.__store__.__contains__(value)
