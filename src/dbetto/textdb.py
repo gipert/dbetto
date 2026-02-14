@@ -100,6 +100,7 @@ class TextDB:
 
         self.__store__ = AttrsDict()
         self.__ftypes__ = {"json", "yaml"}
+        self.__validity_file__ = None
 
         if not self.__lazy__:
             self.scan()
@@ -123,6 +124,7 @@ class TextDB:
         changes at runtime.
         """
         self.__store__ = AttrsDict()
+        self.__validity_file__ = None
 
         if rescan and not self.__lazy__:
             self.scan()
@@ -157,6 +159,38 @@ class TextDB:
     def items(self) -> Iterator[(str, TextDB | AttrsDict | list)]:
         return self.__store__.items()
 
+    def _find_validity_file(self) -> None:
+        """Find and cache the validity file path.
+
+        This method searches for a validity file with supported extensions
+        and caches its path in __validity_file__. The cached path is reused
+        on subsequent calls to .on() to avoid repeated filesystem calls.
+
+        Raises
+        ------
+        RuntimeError
+            If no validity file is found in the database directory.
+        """
+        _extensions = [*list(self.__extensions__), ".jsonl"]
+        validity_file = None
+        for ext in _extensions:
+            candidate = self.__path__ / f"validity{ext}"
+            if candidate.is_file():
+                if validity_file is not None:
+                    msg = (
+                        "multiple supported validity files found, "
+                        f"will use the first one of {_extensions}"
+                    )
+                    log.warning(msg)
+                    break
+                validity_file = candidate
+
+        if validity_file is None:
+            msg = f"no validity.* file found in {self.__path__!s}"
+            raise RuntimeError(msg)
+
+        self.__validity_file__ = validity_file
+
     def on(
         self, timestamp: str | datetime, pattern: str | None = None, system: str = "all"
     ) -> AttrsDict | list:
@@ -183,23 +217,11 @@ class TextDB:
         system
             query only a data taking "system" (e.g. 'all', 'phy', 'cal', 'lar', ...)
         """
-        _extensions = [*list(self.__extensions__), ".jsonl"]
-        validity_file = None
-        for ext in _extensions:
-            candidate = self.__path__ / f"validity{ext}"
-            if candidate.is_file():
-                if validity_file is not None:
-                    msg = (
-                        "multiple supported validity files found, "
-                        "will use the first on of {_extensions}"
-                    )
-                    log.warning(msg)
-                    break
-                validity_file = candidate
+        # Use cached validity file if available, otherwise find it
+        if self.__validity_file__ is None:
+            self._find_validity_file()
 
-        if validity_file is None:
-            msg = f"no validity.* file found in {self.__path__!s}"
-            raise RuntimeError(msg)
+        validity_file = self.__validity_file__
 
         # parse validity file and return requested files
         file_list = Catalog.get_files(str(validity_file), timestamp, system)
@@ -384,6 +406,7 @@ class TextDB:
             "__hidden__": self.__hidden__,
             "__ftypes__": self.__ftypes__,
             "__store__": self.__store__,
+            "__validity_file__": self.__validity_file__,
         }
 
     def __setstate__(self, state: dict) -> None:
@@ -401,6 +424,7 @@ class TextDB:
             else state["__ftypes__"]
         )
         self.__store__ = state["__store__"]
+        self.__validity_file__ = state.get("__validity_file__", None)
 
     def __contains__(self, value: str) -> bool:
         return self.__store__.__contains__(value)

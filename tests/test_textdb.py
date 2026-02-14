@@ -137,6 +137,7 @@ def test_scan():
         "__lazy__",
         "__path__",
         "__store__",
+        "__validity_file__",
         "arrays",
         "dir1",
         "dir2",
@@ -154,6 +155,7 @@ def test_scan():
         "__lazy__",
         "__path__",
         "__store__",
+        "__validity_file__",
         "arrays",
         "file1",
         "file2",
@@ -169,6 +171,7 @@ def test_scan():
         "__lazy__",
         "__path__",
         "__store__",
+        "__validity_file__",
         "dir1",
     ]
 
@@ -297,6 +300,7 @@ def test_lazyness():
         "__lazy__",
         "__path__",
         "__store__",
+        "__validity_file__",
     ]
 
     jdb = TextDB(testdb, lazy=True)
@@ -307,6 +311,7 @@ def test_lazyness():
         "__lazy__",
         "__path__",
         "__store__",
+        "__validity_file__",
     ]
 
     jdb = TextDB(testdb, lazy=False)
@@ -317,6 +322,7 @@ def test_lazyness():
         "__lazy__",
         "__path__",
         "__store__",
+        "__validity_file__",
         "arrays",
         "dir1",
         "dir2",
@@ -338,3 +344,29 @@ def test_hidden():
 
     assert isinstance(jdb.dir2, TextDB)
     assert getattr(jdb.dir2, "__hidden__", False) is True
+
+
+def test_validity_file_caching():
+    """Test that validity file path is cached after first .on() call."""
+    jdb = TextDB(testdb, lazy=False)
+
+    # Initially, validity_file should be None for the root db
+    assert jdb.__validity_file__ is None
+
+    # After first .on() call on dir1 subdirectory, validity_file should be cached
+    jdb.dir1.on("20230101T000001Z")
+    assert jdb.dir1.__validity_file__ is not None
+
+    # Verify the cached path is correct
+    assert jdb.dir1.__validity_file__.name == "validity.yaml"
+    assert jdb.dir1.__validity_file__.parent == jdb.dir1.__path__
+
+    # Second .on() call should use cached validity_file (no filesystem calls)
+    cached_file = jdb.dir1.__validity_file__
+    jdb.dir1.on("20230102T000000Z")
+    assert jdb.dir1.__validity_file__ is cached_file  # Same object
+
+    # Reset should clear the cache
+    jdb.dir1.reset()
+    assert jdb.dir1.__validity_file__ is None
+
