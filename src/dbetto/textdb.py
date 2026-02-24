@@ -184,7 +184,9 @@ class TextDB:
         system
             query only a data taking "system" (e.g. 'all', 'phy', 'cal', 'lar', ...)
         """
-        if isinstance(self.__on_cache__, AttrsDict) and self.__on_cache__.is_valid(timestamp, pattern, system):
+        if isinstance(self.__on_cache__, AttrsDict) and self.__on_cache__.is_valid(
+            timestamp, pattern, system
+        ):
             return self.__on_cache__
 
         _extensions = [*list(self.__extensions__), ".jsonl"]
