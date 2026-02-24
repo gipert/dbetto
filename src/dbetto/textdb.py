@@ -391,6 +391,7 @@ class TextDB:
             "__hidden__": self.__hidden__,
             "__ftypes__": self.__ftypes__,
             "__store__": self.__store__,
+            "__on_cache__": self.__on_cache__,
         }
 
     def __setstate__(self, state: dict) -> None:
@@ -408,6 +409,7 @@ class TextDB:
             else state["__ftypes__"]
         )
         self.__store__ = state["__store__"]
+        self.__on_cache__ = state["__on_cache__"]
 
     def __contains__(self, value: str) -> bool:
         return self.__store__.__contains__(value)
