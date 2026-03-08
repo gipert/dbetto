@@ -39,6 +39,13 @@ class AttrsDict(dict):
     1
     """
 
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls, *args, **kwargs)
+        dict.__setattr__(instance, "__validity_files__", [])
+        dict.__setattr__(instance, "__files__", [])
+        dict.__setattr__(instance, "__cached_remaps__", {})
+        return instance
+
     def __init__(
         self,
         value: dict | None = None,

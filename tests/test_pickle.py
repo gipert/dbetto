@@ -21,6 +21,7 @@ def test_attrsdict_pickle_roundtrip():
 
     blob = pickle.dumps(d)
     d2 = pickle.loads(blob)
+    assert d2.__dict__ == d.__dict__
 
     # Basic structure and attribute access preserved
     assert isinstance(d2, AttrsDict)
@@ -51,6 +52,14 @@ def test_textdb_pickle_roundtrip(tmp_path: Path):
     blob = pickle.dumps(db)
     db2 = pickle.loads(blob)
 
+    # Check that attrs are same, ignoring __store__ and any attrs pulled from __store__
+    assert {k: v for k, v in db2.__dict__.items() if k != "__store__"} == {
+        k: v
+        for k, v in db.__dict__.items()
+        if k != "__store__" and k not in db.__store__
+    }
+    assert set(db2.__store__.keys()) == set(db.__store__.keys())
+
     # Path type restored, access still works
     assert isinstance(db2, TextDB)
     assert isinstance(db2.__path__, Path)
@@ -67,3 +76,23 @@ def test_textdb_pickle_roundtrip(tmp_path: Path):
     assert isinstance(d1, TextDB)
     f3 = d1["file3"]
     assert f3.value == 42
+
+
+def test_valididity_pickle_roundtrip():
+    testdb = Path(__file__).parent / "testdb"
+    db = TextDB(testdb)
+    db_on = db["dir1"].on("20230101T120000Z")["data"] == 1
+
+    blob = pickle.dumps(db)
+    db2 = pickle.loads(blob)
+
+    # Check that attrs are same, ignoring __store__ and any attrs pulled from __store__
+    assert {k: v for k, v in db2.__dict__.items() if k != "__store__"} == {
+        k: v
+        for k, v in db.__dict__.items()
+        if k != "__store__" and k not in db.__store__
+    }
+    assert set(db2.__store__.keys()) == set(db.__store__.keys())
+
+    # calling on gives same thing
+    assert db2["dir1"].on("20230101T120000Z")["data"] == db_on
