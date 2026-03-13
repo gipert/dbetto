@@ -223,19 +223,10 @@ class TextDB:
         result = AttrsDict()
 
         for file in files:
-            # absolute path
-            file_abs = list(self.__path__.rglob(file))
-
-            if not file_abs:
+            if not (self.__path__ / file).exists():
                 msg = f"{file} not found in the database root path {self.__path__!s}"
                 raise RuntimeError(msg)
-
-            # combine dictionaries
-            for f in file_abs:
-                Props.add_to(result, self[f])
-
-        # substitute $_ with path to the file
-        Props.subst_vars(result, var_values={"_": self.__path__})
+            Props.add_to(result, self[file])
 
         return result
 
@@ -272,15 +263,12 @@ class TextDB:
         # resolve relative paths / links, but keep it relative to self.__path__
         item = Path(item)
 
-        if item.is_absolute() and item.is_relative_to(self.__path__):
-            item = item.expanduser().resolve().relative_to(self.__path__)
-        elif not item.is_absolute():
-            item = (
-                (self.__path__ / item).expanduser().resolve().relative_to(self.__path__)
-            )
-        else:
-            msg = f"{item} lies outside the database root path {self.__path__!s}"
-            raise ValueError(msg)
+        if item.is_absolute():
+            if item.is_relative_to(self.__path__):
+                item = item.expanduser().resolve().relative_to(self.__path__)
+            else:
+                msg = f"{item} lies outside the database root path {self.__path__!s}"
+                raise ValueError(msg)
 
         ext_list = "[" + "|".join(self.__extensions__) + "]"
         msg = f"parsing directory or file{ext_list}: {item}"

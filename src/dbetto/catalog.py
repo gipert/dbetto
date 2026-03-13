@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import bisect
 import collections
-import copy
 import json
 import logging
 import types
@@ -285,9 +284,9 @@ class Props:
                 if isinstance(a[key], dict) and isinstance(b[key], dict):
                     Props.add_to(a[key], b[key])
                 elif a[key] != b[key]:
-                    a[key] = copy.deepcopy(b[key])
+                    a[key] = b[key]
             else:
-                a[key] = copy.deepcopy(b[key])
+                a[key] = b[key]
 
     @staticmethod
     def trim_null(props_a):
