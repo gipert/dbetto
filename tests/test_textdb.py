@@ -339,6 +339,7 @@ def test_hidden():
     assert isinstance(jdb.dir2, TextDB)
     assert getattr(jdb.dir2, "__hidden__", False) is True
 
+
 def test_symlink(tmp_path):
     # Create a file outside the db root
     external_dir = tmp_path / "external"
