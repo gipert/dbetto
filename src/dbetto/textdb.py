@@ -100,6 +100,7 @@ class TextDB:
 
         self.__store__ = AttrsDict()
         self.__ftypes__ = {"json", "yaml"}
+        self.__on_cache__ = None
 
         if not self.__lazy__:
             self.scan()
@@ -183,6 +184,11 @@ class TextDB:
         system
             query only a data taking "system" (e.g. 'all', 'phy', 'cal', 'lar', ...)
         """
+        if isinstance(self.__on_cache__, AttrsDict) and self.__on_cache__.is_valid(
+            timestamp, pattern, system
+        ):
+            return self.__on_cache__
+
         _extensions = [*list(self.__extensions__), ".jsonl"]
         validity_file = None
         for ext in _extensions:
@@ -220,7 +226,7 @@ class TextDB:
             files = [files]
 
         # read files in and combine as necessary
-        result = AttrsDict()
+        result = AttrsDict(validity_file=str(validity_file), files=files)
 
         for file in files:
             # absolute path
@@ -237,6 +243,7 @@ class TextDB:
         # substitute $_ with path to the file
         Props.subst_vars(result, var_values={"_": self.__path__})
 
+        self.__on_cache__ = result
         return result
 
     def map(self, label: str, unique: bool = True) -> AttrsDict:
@@ -387,6 +394,7 @@ class TextDB:
             "__hidden__": self.__hidden__,
             "__ftypes__": self.__ftypes__,
             "__store__": self.__store__,
+            "__on_cache__": self.__on_cache__,
         }
 
     def __setstate__(self, state: dict) -> None:
@@ -404,6 +412,7 @@ class TextDB:
             else state["__ftypes__"]
         )
         self.__store__ = state["__store__"]
+        self.__on_cache__ = state["__on_cache__"]
 
     def __contains__(self, value: str) -> bool:
         return self.__store__.__contains__(value)
