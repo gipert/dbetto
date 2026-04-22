@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from dbetto import AttrsDict
 from dbetto.catalog import Props
+from dbetto.utils import load_attrs_dict, load_dict
 
 
 def test_catalog_write(tmpdir):
@@ -21,3 +23,12 @@ def test_catalog_write(tmpdir):
     assert isinstance(test_dict["c"], float)
     assert isinstance(test_dict["d"], float)
     assert isinstance(test_dict["e"], float)
+
+
+def test_load_attrs_dict():
+    testdb = Path(__file__).parent / "testdb"
+    for fname in (testdb / "file1.json", testdb / "file2.yaml"):
+        result = load_attrs_dict(fname)
+        assert isinstance(result, AttrsDict)
+        plain = load_dict(fname)
+        assert result == plain

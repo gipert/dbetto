@@ -21,6 +21,8 @@ from pathlib import Path
 
 import yaml
 
+from .attrsdict import AttrsDict
+
 log = logging.getLogger(__name__)
 
 __file_extensions__ = {"json": [".json"], "yaml": [".yaml", ".yml"]}
@@ -69,6 +71,11 @@ def load_dict(fname: str, ftype: str | None = None) -> dict:
 
         msg = f"unsupported file format {ftype}"
         raise NotImplementedError(msg)
+
+
+def load_attrs_dict(fname: str, ftype: str | None = None) -> AttrsDict:
+    """Load a text file as an :class:`.AttrsDict`."""
+    return AttrsDict(load_dict(fname, ftype))
 
 
 def write_dict(obj: dict, fname: str, ftype: str | None = None) -> None:
