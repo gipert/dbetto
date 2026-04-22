@@ -67,8 +67,8 @@ features = ["test"]
 scripts.test = "pytest {args}"
 
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
   "dbetto[test]",
 ]
 
