@@ -91,7 +91,7 @@ def test_catalog_build():
     ]
     with pytest.raises(ValueError):
         catalog = Catalog.get(catalog)
-    # multiple entries with same timestamp
+    # multiple entries with same timestamp, same category
     catalog = (
         {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
         {"apply": ["file2.json"], "valid_from": "20220628T221955Z"},
@@ -103,6 +103,22 @@ def test_catalog_build():
         PropsStream.get(catalog), suppress_duplicate_check=True
     )
     assert catalog.valid_for("20220628T221955Z") == ["file1.json", "file2.json"]
+    # same timestamp with different categories is allowed
+    catalog = Catalog.get(
+        (
+            {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
+            {
+                "apply": ["file2.json"],
+                "valid_from": "20220628T221955Z",
+                "category": "cal",
+            },
+        )
+    )
+    assert catalog.valid_for("20220628T221955Z") == ["file1.json"]
+    assert catalog.valid_for("20220628T221955Z", system="cal") == [
+        "file1.json",
+        "file2.json",
+    ]
 
 
 def test_catalog_valid_for():
@@ -137,6 +153,40 @@ def test_catalog_valid_for():
     )
     catalog = Catalog.get(catalog)
     assert catalog.valid_for("20220629T221955Z", system="test") == ["file1.json"]
+    # test "all" broadcasts to existing specific categories
+    catalog = Catalog.get(
+        (
+            {"apply": ["file1.json"], "valid_from": "20220628T221955Z"},
+            {
+                "apply": ["file2.json"],
+                "valid_from": "20220629T221955Z",
+                "category": "test",
+            },
+            {"apply": ["file3.json"], "valid_from": "20220630T221955Z"},
+        )
+    )
+    # "all" update at T3 should propagate to "test" category
+    assert catalog.valid_for("20220630T221955Z", system="test") == [
+        "file1.json",
+        "file2.json",
+        "file3.json",
+    ]
+    assert catalog.valid_for("20220630T221955Z") == ["file1.json", "file3.json"]
+    # test new specific category inherits from "all"
+    catalog = Catalog.get(
+        (
+            {"apply": ["base.json"], "valid_from": "20220628T221955Z"},
+            {
+                "apply": ["extra.json"],
+                "valid_from": "20220629T221955Z",
+                "category": "cal",
+            },
+        )
+    )
+    assert catalog.valid_for("20220629T221955Z", system="cal") == [
+        "base.json",
+        "extra.json",
+    ]
 
 
 def test_catalog_write(tmpdir):
@@ -195,7 +245,7 @@ def test_validity_files():
     # test jsonl duplicates
     cat = Catalog.read_from(testolddb / "validity_duplicates.jsonl")
     assert cat.valid_for("20230101T000000Z") == ["file2.json"]
-    # test yaml duplicates
+    # test yaml duplicates (same category)
     with pytest.raises(ValueError):
         Catalog.read_from(testolddb / "validity_duplicates.yaml")
     # test yaml default to append
@@ -206,3 +256,9 @@ def test_validity_files():
     cat = Catalog.read_from(testolddb / "validity_reset.jsonl")
     assert cat.valid_for("20230101T000000Z") == ["file1.json"]
     assert cat.valid_for("20230102T000000Z") == ["file2.json"]
+    # test yaml out-of-order raises
+    with pytest.raises(ValueError):
+        Catalog.read_from(testolddb / "validity_unordered.yaml")
+    # test yaml "all" after specific at same timestamp raises
+    with pytest.raises(ValueError):
+        Catalog.read_from(testolddb / "validity_all_after_specific.yaml")
