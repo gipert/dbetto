@@ -265,7 +265,7 @@ class TextDB:
 
         if item.is_absolute():
             if item.is_relative_to(self.__path__):
-                item = item.expanduser().resolve().relative_to(self.__path__)
+                item = item.expanduser().absolute().relative_to(self.__path__)
             else:
                 msg = f"{item} lies outside the database root path {self.__path__!s}"
                 raise ValueError(msg)

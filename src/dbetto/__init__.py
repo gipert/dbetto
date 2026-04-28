@@ -20,11 +20,14 @@ from .attrsdict import AttrsDict
 from .catalog import Props
 from .textdb import TextDB
 from .time import str_to_datetime
+from .utils import load_attrs_dict, load_dict
 
 __all__ = [
     "AttrsDict",
     "Props",
     "TextDB",
     "__version__",
+    "load_attrs_dict",
+    "load_dict",
     "str_to_datetime",
 ]
