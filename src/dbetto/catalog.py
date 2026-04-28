@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import bisect
 import collections
-import copy
 import json
 import logging
 import types
