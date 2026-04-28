@@ -16,8 +16,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Hashable
 from typing import Any
+
+from .catalog import Catalog
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +39,19 @@ class AttrsDict(dict):
     1
     """
 
-    def __init__(self, value: dict | None = None) -> None:
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls, *args, **kwargs)
+        dict.__setattr__(instance, "__validity_files__", [])
+        dict.__setattr__(instance, "__files__", [])
+        dict.__setattr__(instance, "__cached_remaps__", {})
+        return instance
+
+    def __init__(
+        self,
+        value: dict | None = None,
+        validity_file: list[str] | str | None = None,
+        files: list[str] | None = None,
+    ) -> None:
         """Construct an :class:`.AttrsDict` object.
 
         Note
@@ -47,7 +62,19 @@ class AttrsDict(dict):
         ----------
         value
             a :class:`dict` object to initialize the instance with.
+        validity_file
+            path(s) to validity file used to initialize this instance with :meth:TextDB.on
+        files
+            list of files used to initialize this instance with :meth:TextDB.on
         """
+        if isinstance(validity_file, str):
+            super().__setattr__("__validity_files__", [validity_file])
+        else:
+            super().__setattr__(
+                "__validity_files__", validity_file if validity_file else []
+            )
+        super().__setattr__("__files__", files if files else [])
+
         if value is None:
             super().__init__()
         # can only be initialized with a dict
@@ -65,12 +92,16 @@ class AttrsDict(dict):
         # convert dicts to AttrsDicts
         if not isinstance(value, AttrsDict):
             if isinstance(value, dict):
-                value = AttrsDict(value)  # this should make it recursive
+                value = AttrsDict(
+                    value, self.__validity_files__, self.__files__
+                )  # this should make it recursive
             # recurse lists
             elif isinstance(value, list):
                 for i, el in enumerate(value):
                     if isinstance(el, dict):
-                        value[i] = AttrsDict(el)  # this should make it recursive
+                        value[i] = AttrsDict(
+                            el, self.__validity_files__, self.__files__
+                        )  # this should make it recursive
 
         super().__setitem__(key, value)
 
@@ -167,7 +198,7 @@ class AttrsDict(dict):
             return self.__cached_remaps__[label]
 
         splitk = label.split(".")
-        newmap = AttrsDict()
+        newmap = AttrsDict(validity_file=self.__validity_files__, files=self.__files__)
         unique_tracker = True
         # loop over values in the first level
         for v in self.values():
@@ -198,7 +229,11 @@ class AttrsDict(dict):
             raise RuntimeError(msg)
 
         if unique_tracker is True:
-            newmap = AttrsDict({entry: newmap[entry][0] for entry in newmap})
+            newmap = AttrsDict(
+                {entry: newmap[entry][0] for entry in newmap},
+                self.__validity_files__,
+                self.__files__,
+            )
 
         if not newmap:
             msg = f"could not find '{label}' anywhere in the dictionary"
@@ -251,13 +286,46 @@ class AttrsDict(dict):
         """
         return self.map(label, unique=False)
 
+    def is_valid(
+        self, timestamp: str, pattern: str | None = None, system: str = "all"
+    ) -> bool:
+        """
+        If validity file was provided, return ``True`` if the timestamp
+        and system are valid for the path used to build this instance. If
+        no validity file was provided, return ``False``.
+        """
+        if len(self.__validity_files__) == 0:
+            return False
+        valid_files = [
+            f
+            for vf in self.__validity_files__
+            for f in Catalog.get_files(vf, timestamp, system)
+        ]
+
+        # select only files matching pattern, if specified
+        if pattern is not None:
+            c = re.compile(pattern)
+            valid_files = [f for f in valid_files if c.match(f)]
+
+        return valid_files == self.__files__
+
     # d |= other_d should still produce a valid AttrsDict
     def __ior__(self, other: dict | AttrsDict) -> AttrsDict:
-        return AttrsDict(super().__ior__(other))
+        validity_files = self.__validity_files__
+        files = self.__files__
+        if isinstance(other, AttrsDict):
+            validity_files = validity_files + other.__validity_files__
+            files = files + other.__files__
+        return AttrsDict(super().__ior__(other), validity_files, files)
 
     # d1 | d2 should still produce a valid AttrsDict
     def __or__(self, other: dict | AttrsDict) -> AttrsDict:
-        return AttrsDict(super().__or__(other))
+        validity_files = self.__validity_files__
+        files = self.__files__
+        if isinstance(other, AttrsDict):
+            validity_files = validity_files + other.__validity_files__
+            files = files + other.__files__
+        return AttrsDict(super().__or__(other), validity_files, files)
 
     def reset(self) -> None:
         """Reset this instance by removing all cached data."""
@@ -270,8 +338,14 @@ class AttrsDict(dict):
             cached = super().__getattribute__("__cached_remaps__")
         except AttributeError:
             cached = {}
-        return {"__cached_remaps__": cached}
+        return {
+            "__cached_remaps__": cached,
+            "__validity_files__": self.__validity_files__,
+            "__files__": self.__files__,
+        }
 
     def __setstate__(self, state: dict) -> None:
         """Restore the instance-specific state during unpickling."""
         super().__setattr__("__cached_remaps__", state.get("__cached_remaps__", {}))
+        super().__setattr__("__validity_files__", state.get("__validity_files__", []))
+        super().__setattr__("__files__", state.get("__files__", []))
