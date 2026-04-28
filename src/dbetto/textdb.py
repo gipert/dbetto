@@ -171,7 +171,12 @@ class TextDB:
         <https://legend-exp.github.io/legend-data-format-specs/dev/metadata/#Specifying-metadata-validity-in-time-(and-system)>`_.
 
         The special ``$_`` string is expanded to the directory containing the
-        text files.
+        text files. Paths may be relative to this directory or absolute; only
+        absolute paths will expand wildcards and environment variables.
+
+        Note that the same object will be returned for multiple timestamps if
+        it is valid for all of them; modifications to the returned object will
+        popagate to all of these (unless a deepcopy is explicitly performed).
 
         Parameters
         ----------

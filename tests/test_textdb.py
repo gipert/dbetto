@@ -78,6 +78,10 @@ def test_access():
     assert jdb.arrays[1].array[0] == 1
     assert jdb.arrays[1].array[1].data == 2
 
+    assert jdb[f"{testdb}/file1"] == jdb.file1
+    with pytest.raises(ValueError):
+        jdb[f"{testdb.parent}/test_validities/validity_duplicates.yaml"]
+
     assert jdb.file2.filepath == str(Path(__file__).parent / "testdb")
 
     with pytest.raises(ValueError):
