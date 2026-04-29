@@ -24,7 +24,7 @@ def test_props():
     test_dict2 = Props.read_from(str(Path(__file__).parent / "testdb" / "file3.json"))
 
     # test add_to
-    Props.add_to(test_dict, test_dict2)
+    test_dict = Props.add_to(test_dict, test_dict2)
     assert test_dict["data"] == 3
 
     # test trim null

@@ -231,7 +231,7 @@ class TextDB:
             if not (self.__path__ / file).exists():
                 msg = f"{file} not found in the database root path {self.__path__!s}"
                 raise RuntimeError(msg)
-            Props.add_to(result, self[file])
+            result = Props.add_to(result, self[file])
 
         return result
 
