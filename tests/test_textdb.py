@@ -228,6 +228,7 @@ def test_time_validity():
     read2 = jdb.dir4.on("20230101T000000Z")
     assert read1 == read2
 
+
 def test_mapping():
     jdb = TextDB(testdb)
 

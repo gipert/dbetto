@@ -12,10 +12,5 @@
     "key3": { "label": "c", "data": 3 },
     "key4": { "label": "d", "data": 4 }
   },
-  "array": [
-    1,
-    2,
-    3,
-    4
-  ]
+  "array": [1, 2, 3, 4]
 }
