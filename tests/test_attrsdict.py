@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from dbetto.attrsdict import AttrsDict
+from copy import deepcopy
+
+import pytest
+
+from dbetto.attrsdict import AttrsDict, AttrsDict_RO
 
 
 def test_to_dict_recursively_converts_nested_values():
@@ -38,3 +42,25 @@ def test_to_dict_does_not_mutate_original_structure():
     assert isinstance(original_list[0], AttrsDict)
     # ensure the converted structure no longer has AttrsDict wrappers
     assert not isinstance(converted["values"][0], AttrsDict)
+
+
+def test_attrsdict_ro():
+    d = AttrsDict_RO({"a": 1, "b": {"c": 2}})
+    assert d["a"] == 1
+    assert d["b"]["c"] == 2
+    assert d.a == 1
+    assert d.b.c == 2
+    assert isinstance(d, AttrsDict)
+    assert isinstance(d.b, AttrsDict_RO)
+    d_copy = deepcopy(d)
+    assert isinstance(d_copy, AttrsDict)
+    assert not isinstance(d_copy, AttrsDict_RO)
+
+    with pytest.raises(TypeError):
+        d["a"] = 10
+    with pytest.raises(TypeError):
+        d["b"]["c"] = 20
+    with pytest.raises(TypeError):
+        d.a = 10
+    with pytest.raises(TypeError):
+        d.b.c = 20

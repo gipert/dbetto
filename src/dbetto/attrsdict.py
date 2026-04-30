@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Hashable
+from copy import deepcopy
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -275,3 +276,45 @@ class AttrsDict(dict):
     def __setstate__(self, state: dict) -> None:
         """Restore the instance-specific state during unpickling."""
         super().__setattr__("__cached_remaps__", state.get("__cached_remaps__", {}))
+
+
+class AttrsDict_RO(AttrsDict):
+    """Read-only version of :class:`.AttrsDict`"""
+
+    def __init__(self, value: dict | None = None) -> None:
+        """Construct an :class:`.AttrsDict_RO` object.
+
+        Note
+        ----
+        The input dictionary is copied.
+
+        Parameters
+        ----------
+        value
+            a :class:`dict` object to initialize the instance with.
+        """
+        super().__init__()
+        for key in value:
+            super().__setitem__(key, value[key])
+
+    def __setitem__(self, key: str | int | float, value: Any) -> None:
+        msg = "AttrsDict_RO is read-only"
+        raise TypeError(msg)
+
+    __setattr__ = __setitem__
+
+    def __getitem__(self, key: str | int | float) -> Any:
+        val = super().__getitem__(key)
+        if isinstance(val, dict):
+            return AttrsDict_RO(val)
+        return val
+
+    def __getattribute__(self, name: str) -> Any:
+        val = super().__getattribute__(name)
+        if isinstance(val, dict):
+            return AttrsDict_RO(val)
+        return val
+
+    def __deepcopy__(self, memo: dict) -> AttrsDict:
+        # if we deep copy, return a writeable AttrsDict
+        return deepcopy(AttrsDict(self), memo)

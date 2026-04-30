@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from dbetto import AttrsDict, TextDB
+from dbetto.attrsdict import AttrsDict_RO
 from dbetto.catalog import Props
 
 testdb = Path(__file__).parent / "testdb"
@@ -183,6 +184,7 @@ def test_scan():
 def test_time_validity():
     jdb = TextDB(testdb)
     assert isinstance(jdb["dir1"].on("20230101T000001Z"), AttrsDict)
+    assert isinstance(jdb["dir1"].on("20230101T000001Z"), AttrsDict_RO)
 
     assert jdb["dir1"].on("20230101T000000Z")["data"] == 1
     assert jdb.dir1.on("20230102T000000Z").data == 2
