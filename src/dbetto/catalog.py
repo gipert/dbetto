@@ -21,7 +21,6 @@ import logging
 import types
 from collections import namedtuple
 from collections.abc import Generator
-from copy import deepcopy
 from pathlib import Path
 from string import Template
 
