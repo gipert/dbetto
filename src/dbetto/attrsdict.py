@@ -36,7 +36,14 @@ class AttrsDict(dict):
     1
     """
 
-    def __init__(self, value: dict | None = None) -> None:
+    def __new__(cls, *_, **__) -> AttrsDict:
+        """Create a new instance of AttrsDict."""
+        instance = super().__new__(cls)
+        super(AttrsDict, instance).__setattr__("__readonly__", False)
+        super(AttrsDict, instance).__setattr__("__cached_remaps__", {})
+        return instance
+
+    def __init__(self, value: dict | None = None, readonly: bool = False) -> None:
         """Construct an :class:`.AttrsDict` object.
 
         Note
@@ -47,6 +54,8 @@ class AttrsDict(dict):
         ----------
         value
             a :class:`dict` object to initialize the instance with.
+        readonly
+            if ``True``, fields will be read-only
         """
         if value is None:
             super().__init__()
@@ -59,9 +68,13 @@ class AttrsDict(dict):
             raise TypeError(msg)
 
         # attribute that holds cached remappings -- see map()
-        super().__setattr__("__cached_remaps__", {})
+        self.__readonly__ = readonly
 
     def __setitem__(self, key: str | int | float, value: Any) -> Any:
+        if self.__readonly__:
+            msg = "this AttrsDict is read-only"
+            raise TypeError(msg)
+
         # convert dicts to AttrsDicts
         if not isinstance(value, AttrsDict):
             if isinstance(value, dict):
@@ -81,7 +94,20 @@ class AttrsDict(dict):
         # reset special __cached_remaps__ private attribute -- see map()
         super().__setattr__("__cached_remaps__", {})
 
-    __setattr__ = __setitem__
+    def __setattr__(
+        self, name: str, value: Any, suppress_warning: bool = False
+    ) -> None:
+        if name == "__readonly__":
+            if not suppress_warning and self.__readonly__ and not value:
+                log.warning(
+                    "toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying"
+                )
+            for v in super().values():
+                if isinstance(v, AttrsDict):
+                    v.__setattr__("__readonly__", value, suppress_warning=True)
+            super().__setattr__(name, value)
+        else:
+            self.__setitem__(name, value)
 
     def to_dict(self) -> dict:
         """Return a plain :class:`dict` representation of the object.
@@ -206,6 +232,7 @@ class AttrsDict(dict):
 
         # cache it
         self.__cached_remaps__[label] = newmap
+        newmap.__readonly__ = self.__readonly__
         return newmap
 
     def group(self, label: str) -> AttrsDict:
@@ -253,11 +280,18 @@ class AttrsDict(dict):
 
     # d |= other_d should still produce a valid AttrsDict
     def __ior__(self, other: dict | AttrsDict) -> AttrsDict:
+        if self.__readonly__:
+            msg = "this AttrsDict is read-only"
+            raise TypeError(msg)
         return AttrsDict(super().__ior__(other))
 
     # d1 | d2 should still produce a valid AttrsDict
     def __or__(self, other: dict | AttrsDict) -> AttrsDict:
-        return AttrsDict(super().__or__(other))
+        return AttrsDict(
+            super().__or__(other),
+            self.__readonly__
+            | (other.__readonly__ if isinstance(other, AttrsDict) else False),
+        )
 
     def reset(self) -> None:
         """Reset this instance by removing all cached data."""
@@ -275,3 +309,4 @@ class AttrsDict(dict):
     def __setstate__(self, state: dict) -> None:
         """Restore the instance-specific state during unpickling."""
         super().__setattr__("__cached_remaps__", state.get("__cached_remaps__", {}))
+        super().__setattr__("__readonly__", False)

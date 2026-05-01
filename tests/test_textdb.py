@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,7 +24,7 @@ def test_props():
     test_dict2 = Props.read_from(str(Path(__file__).parent / "testdb" / "file3.json"))
 
     # test add_to
-    Props.add_to(test_dict, test_dict2)
+    test_dict = Props.add_to(test_dict, test_dict2)
     assert test_dict["data"] == 3
 
     # test trim null
@@ -78,6 +79,10 @@ def test_access():
     assert jdb.arrays[1].array[0] == 1
     assert jdb.arrays[1].array[1].data == 2
 
+    assert jdb[f"{testdb}/file1"] == jdb.file1
+    with pytest.raises(ValueError):
+        jdb[f"{testdb.parent}/test_validities/validity_duplicates.yaml"]
+
     assert jdb.file2.filepath == str(Path(__file__).parent / "testdb")
 
     with pytest.raises(ValueError):
@@ -97,6 +102,7 @@ def test_keys():
         "arrays",
         "dir1",
         "dir2",
+        "dir4",
         "file1",
         "file2",
         "file3",
@@ -113,8 +119,8 @@ def test_items():
     assert isinstance(items[0][1], list)
     assert items[1][0] == "dir1"
     assert isinstance(items[1][1], TextDB)
-    assert items[3][0] == "file1"
-    assert isinstance(items[4][1], AttrsDict)
+    assert items[4][0] == "file1"
+    assert isinstance(items[5][1], AttrsDict)
 
 
 def test_reset():
@@ -140,6 +146,7 @@ def test_scan():
         "arrays",
         "dir1",
         "dir2",
+        "dir4",
         "file1",
         "file2",
         "file3",
@@ -176,6 +183,7 @@ def test_scan():
 def test_time_validity():
     jdb = TextDB(testdb)
     assert isinstance(jdb["dir1"].on("20230101T000001Z"), AttrsDict)
+    assert jdb["dir1"].on("20230101T000001Z").__readonly__
 
     assert jdb["dir1"].on("20230101T000000Z")["data"] == 1
     assert jdb.dir1.on("20230102T000000Z").data == 2
@@ -214,6 +222,12 @@ def test_time_validity():
 
     assert jdb.dir1.on(tstamp, system="phy").data == 1
     assert jdb.dir1.on(tstamp, system="cal").data == 1
+
+    # test that nested structures are not irreversibly modified by on
+    read1 = deepcopy(jdb.dir4.on("20230101T000000Z"))
+    jdb.dir4.on("20230102T000000Z")
+    read2 = jdb.dir4.on("20230101T000000Z")
+    assert read1 == read2
 
 
 def test_mapping():
@@ -320,6 +334,7 @@ def test_lazyness():
         "arrays",
         "dir1",
         "dir2",
+        "dir4",
         "file1",
         "file2",
         "file3",
