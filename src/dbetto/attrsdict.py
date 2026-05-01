@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Hashable
-from copy import deepcopy
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -36,6 +35,7 @@ class AttrsDict(dict):
     >>> d1.a
     1
     """
+
     def __new__(cls, *args, **kwargs) -> AttrsDict:
         """Create a new instance of AttrsDict."""
         instance = super().__new__(cls)
@@ -93,10 +93,14 @@ class AttrsDict(dict):
         # reset special __cached_remaps__ private attribute -- see map()
         super().__setattr__("__cached_remaps__", {})
 
-    def __setattr__(self, name: str, value: Any, suppress_warning: bool = False) -> None:
+    def __setattr__(
+        self, name: str, value: Any, suppress_warning: bool = False
+    ) -> None:
         if name == "__readonly__":
             if not suppress_warning and self.__readonly__ and not value:
-                log.warning("toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying")
+                log.warning(
+                    "toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying"
+                )
             for v in super().values():
                 if isinstance(v, AttrsDict):
                     v.__setattr__("__readonly__", value, suppress_warning=True)
@@ -281,7 +285,11 @@ class AttrsDict(dict):
 
     # d1 | d2 should still produce a valid AttrsDict
     def __or__(self, other: dict | AttrsDict) -> AttrsDict:
-        return AttrsDict(super().__or__(other), self.__readonly__ | (other.__readonly__ if isinstance(other, AttrsDict) else False))
+        return AttrsDict(
+            super().__or__(other),
+            self.__readonly__
+            | (other.__readonly__ if isinstance(other, AttrsDict) else False),
+        )
 
     def reset(self) -> None:
         """Reset this instance by removing all cached data."""

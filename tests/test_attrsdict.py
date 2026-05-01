@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import logging
 from copy import deepcopy
 
-import logging
 import pytest
 
 from dbetto.attrsdict import AttrsDict
@@ -72,14 +72,17 @@ def test_readonly(caplog):
     d_or = d | {"d": 4}
     assert isinstance(d_or, AttrsDict)
     assert d_or.__readonly__
-    
+
     with pytest.raises(TypeError):
         d |= {"d": 4}
 
     # changing __readonly__ should log a warning and propagate to children
     with caplog.at_level(logging.WARNING):
         d.__readonly__ = False
-    assert "toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying" in caplog.text
+    assert (
+        "toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying"
+        in caplog.text
+    )
     assert not d.__readonly__
     assert not d.b.__readonly__
 
