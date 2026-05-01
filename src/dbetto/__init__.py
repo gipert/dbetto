@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 from ._version import version as __version__
-from .attrsdict import AttrsDict, AttrsDict_RO
+from .attrsdict import AttrsDict
 from .catalog import Props
 from .textdb import TextDB
 from .time import str_to_datetime
@@ -24,7 +24,6 @@ from .utils import load_attrs_dict, load_dict
 
 __all__ = [
     "AttrsDict",
-    "AttrsDict_RO",
     "Props",
     "TextDB",
     "__version__",

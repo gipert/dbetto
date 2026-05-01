@@ -26,7 +26,7 @@ from pathlib import Path
 import yaml
 
 from . import utils
-from .attrsdict import AttrsDict, AttrsDict_RO
+from .attrsdict import AttrsDict
 from .catalog import Catalog, Props
 
 log = logging.getLogger(__name__)
@@ -233,7 +233,8 @@ class TextDB:
                 raise RuntimeError(msg)
             result = Props.add_to(result, self[file])
 
-        return AttrsDict_RO(result)
+        result.__readonly__ = True
+        return result
 
     def map(self, label: str, unique: bool = True) -> AttrsDict:
         """Remap dictionary according to a second unique `label`.
