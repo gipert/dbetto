@@ -36,7 +36,7 @@ class AttrsDict(dict):
     1
     """
 
-    def __new__(cls, *args, **kwargs) -> AttrsDict:
+    def __new__(cls, *_, **__) -> AttrsDict:
         """Create a new instance of AttrsDict."""
         instance = super().__new__(cls)
         super(AttrsDict, instance).__setattr__("__readonly__", False)
@@ -72,7 +72,8 @@ class AttrsDict(dict):
 
     def __setitem__(self, key: str | int | float, value: Any) -> Any:
         if self.__readonly__:
-            raise TypeError("this AttrsDict is read-only")
+            msg = "this AttrsDict is read-only"
+            raise TypeError(msg)
 
         # convert dicts to AttrsDicts
         if not isinstance(value, AttrsDict):
@@ -280,7 +281,8 @@ class AttrsDict(dict):
     # d |= other_d should still produce a valid AttrsDict
     def __ior__(self, other: dict | AttrsDict) -> AttrsDict:
         if self.__readonly__:
-            raise TypeError("this AttrsDict is read-only")
+            msg = "this AttrsDict is read-only"
+            raise TypeError(msg)
         return AttrsDict(super().__ior__(other))
 
     # d1 | d2 should still produce a valid AttrsDict
