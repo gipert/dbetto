@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import bisect
 import collections
-import copy
 import json
 import logging
 import types
@@ -26,6 +25,7 @@ from pathlib import Path
 from string import Template
 
 from . import time, utils
+from .attrsdict import AttrsDict
 
 log = logging.getLogger(__name__)
 
@@ -260,7 +260,7 @@ class Props:
             if isinstance(sources, list):
                 result = {}
                 for p in map(read_impl, sources):
-                    Props.add_to(result, p)
+                    result = Props.add_to(result, p)
                 return result
 
             msg = f"Can't run Props.read_from on sources-value of type {type(sources)}"
@@ -277,17 +277,19 @@ class Props:
 
     @staticmethod
     def add_to(props_a, props_b):
-        a = props_a
-        b = props_b
+        a = AttrsDict()
 
-        for key in b:
-            if key in a:
-                if isinstance(a[key], dict) and isinstance(b[key], dict):
-                    Props.add_to(a[key], b[key])
-                elif a[key] != b[key]:
-                    a[key] = copy.deepcopy(b[key])
+        for key in set(props_a) | set(props_b):
+            old = props_a.get(key)
+            new = props_b.get(key)
+            if isinstance(old, dict) and isinstance(new, dict):
+                a[key] = Props.add_to(old, new)
+            elif new is None:
+                a[key] = old
             else:
-                a[key] = copy.deepcopy(b[key])
+                a[key] = new
+
+        return a
 
     @staticmethod
     def trim_null(props_a):

@@ -171,7 +171,12 @@ class TextDB:
         <https://legend-exp.github.io/legend-data-format-specs/dev/metadata/#Specifying-metadata-validity-in-time-(and-system)>`_.
 
         The special ``$_`` string is expanded to the directory containing the
-        text files.
+        text files. Paths may be relative to this directory or absolute; only
+        absolute paths will expand wildcards and environment variables.
+
+        Note that the same object will be returned for multiple timestamps if
+        it is valid for all of them; modifications to the returned object will
+        popagate to all of these (unless a deepcopy is explicitly performed).
 
         Parameters
         ----------
@@ -223,20 +228,12 @@ class TextDB:
         result = AttrsDict()
 
         for file in files:
-            # absolute path
-            file_abs = list(self.__path__.rglob(file))
-
-            if not file_abs:
+            if not (self.__path__ / file).exists():
                 msg = f"{file} not found in the database root path {self.__path__!s}"
                 raise RuntimeError(msg)
+            result = Props.add_to(result, self[file])
 
-            # combine dictionaries
-            for f in file_abs:
-                Props.add_to(result, self[f])
-
-        # substitute $_ with path to the file
-        Props.subst_vars(result, var_values={"_": self.__path__})
-
+        result.__readonly__ = True
         return result
 
     def map(self, label: str, unique: bool = True) -> AttrsDict:
@@ -272,18 +269,12 @@ class TextDB:
         # resolve relative paths / links, but keep it relative to self.__path__
         item = Path(item)
 
-        if item.is_absolute() and item.is_relative_to(self.__path__):
-            item = item.expanduser().absolute().relative_to(self.__path__)
-        elif not item.is_absolute():
-            item = (
-                (self.__path__ / item)
-                .expanduser()
-                .absolute()
-                .relative_to(self.__path__)
-            )
-        else:
-            msg = f"{item} lies outside the database root path {self.__path__!s}"
-            raise ValueError(msg)
+        if item.is_absolute():
+            if item.is_relative_to(self.__path__):
+                item = item.expanduser().absolute().relative_to(self.__path__)
+            else:
+                msg = f"{item} lies outside the database root path {self.__path__!s}"
+                raise ValueError(msg)
 
         ext_list = "[" + "|".join(self.__extensions__) + "]"
         msg = f"parsing directory or file{ext_list}: {item}"
