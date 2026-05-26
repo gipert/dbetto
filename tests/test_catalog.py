@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-import math
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -17,21 +16,21 @@ testolddb = Path(__file__).parent / "test_validities"
 
 
 def test_to_datetime():
-    assert str_to_datetime("20230501T205951Z") == datetime(2023, 5, 1, 20, 59, 51)
-
-
-def test_from_datetime():
-    assert datetime_to_str(datetime(2023, 5, 1, 20, 59, 51)) == "20230501T205951Z"
-    assert (
-        datetime_to_str(datetime.timestamp(datetime(2023, 5, 1, 20, 59, 51)))
-        == "20230501T205951Z"
+    assert str_to_datetime("20230501T205951Z") == datetime(
+        2023, 5, 1, 20, 59, 51, tzinfo=timezone.utc
     )
 
 
+def test_from_datetime():
+    utc_dt = datetime(2023, 5, 1, 20, 59, 51, tzinfo=timezone.utc)
+    assert datetime_to_str(utc_dt) == "20230501T205951Z"
+    assert datetime_to_str(utc_dt.timestamp()) == "20230501T205951Z"
+
+
 def test_unix_time():
-    now = datetime.now()
-    assert unix_time(datetime_to_str(datetime.now())) == math.floor(now.timestamp())
-    assert unix_time(now) == now.timestamp()
+    utc_dt = datetime(2023, 5, 1, 20, 59, 51, tzinfo=timezone.utc)
+    assert unix_time("20230501T205951Z") == utc_dt.timestamp()
+    assert unix_time(utc_dt) == utc_dt.timestamp()
     with pytest.raises(ValueError):
         unix_time(21)
 

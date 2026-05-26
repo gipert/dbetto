@@ -15,18 +15,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def str_to_datetime(value):
     """Convert a string in the format %Y%m%dT%H%M%SZ to :class:`datetime.datetime`."""
-    return datetime.strptime(value, "%Y%m%dT%H%M%SZ")
+    return datetime.strptime(value, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
 
 
 def datetime_to_str(value):
     """Convert a :class:`datetime.datetime` object to a string in the format %Y%m%dT%H%M%SZ."""
     if isinstance(value, float):
-        value = datetime.fromtimestamp(value)
+        value = datetime.fromtimestamp(value, tz=timezone.utc)
     return value.strftime("%Y%m%dT%H%M%SZ")
 
 
