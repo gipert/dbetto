@@ -279,7 +279,8 @@ class Props:
     def add_to(props_a, props_b):
         a = AttrsDict()
 
-        for key in set(props_a) | set(props_b):
+        _seen = set(props_a)
+        for key in list(props_a) + [k for k in props_b if k not in _seen]:
             old = props_a.get(key)
             new = props_b.get(key)
             if isinstance(old, dict) and isinstance(new, dict):

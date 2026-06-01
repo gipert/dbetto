@@ -46,6 +46,18 @@ def test_props():
         test_dict["null_key"]
 
 
+def test_props_add_to_ordering():
+    # keys from props_a come first (in their original order), then new keys
+    # from props_b are appended (in their original order). This is essential
+    # for build_evt, where later operations may reference earlier ones by name.
+    a = {"x": 1, "y": 2, "z": 3}
+    b = {"w": 10, "y": 99, "v": 20}
+    result = Props.add_to(a, b)
+
+    assert list(result.keys()) == ["x", "y", "z", "w", "v"]
+    assert result["y"] == 99  # props_b value wins on overlap
+
+
 def test_access():
     jdb = TextDB(testdb)
     assert isinstance(jdb["file1.json"], AttrsDict)
