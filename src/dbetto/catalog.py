@@ -58,10 +58,28 @@ class PropsStream:
                     yield json.loads(json_str)
 
         else:
-            yield from sorted(
-                utils.load_dict(file_name),
-                key=lambda item: time.unix_time(item["valid_from"]),
-            )
+            items = utils.load_dict(file_name)
+            prev_ts = None
+            prev_is_all = None
+            for item in items:
+                ts = time.unix_time(item["valid_from"])
+                cat = item.get("category", "all")
+                is_all = ("all" in cat) if isinstance(cat, list) else (cat == "all")
+                if prev_ts is not None:
+                    if ts < prev_ts:
+                        msg = (
+                            f"Validity file is not time-ordered at {item['valid_from']}"
+                        )
+                        raise ValueError(msg)
+                    if ts == prev_ts and is_all and not prev_is_all:
+                        msg = (
+                            f"At duplicate timestamp {item['valid_from']}, "
+                            "'all' must come before specific categories"
+                        )
+                        raise ValueError(msg)
+                prev_ts = ts
+                prev_is_all = is_all
+                yield item
 
 
 class Catalog(namedtuple("Catalog", ["entries"])):
@@ -108,29 +126,62 @@ class Catalog(namedtuple("Catalog", ["entries"])):
     ) -> Catalog:
         """Build a Catalog object from a validity file/stream"""
         entries = {}
+        seen_explicit = set()  # (category, ts_int) pairs from explicit input
         for props in PropsStream.get(propstream):
             timestamp = props["valid_from"]
+            ts_int = time.unix_time(timestamp)
             system = props.get("category", "all")
             if not isinstance(system, list):
                 system = [system]
             file_key = props["apply"]
             if isinstance(file_key, str):
                 file_key = [file_key]
-            for syst in system:
+
+            # Check for explicit duplicate (same category + timestamp in input)
+            if not suppress_duplicate_check:
+                for syst in system:
+                    key = (syst, ts_int)
+                    if key in seen_explicit:
+                        msg = f"Duplicate timestamp: {timestamp} for category {syst}"
+                        raise ValueError(msg)
+                    seen_explicit.add(key)
+
+            # "all" broadcasts the operation to every existing category;
+            # specific categories are applied only to themselves.
+            if "all" in system:
+                existing_non_all = [s for s in entries if s != "all"]
+                target_systems = ["all", *existing_non_all]
+            else:
+                target_systems = list(system)
+
+            for syst in target_systems:
                 if syst not in entries:
                     entries[syst] = []
+
                 mode = props.get("mode", mode_default)
-                mode = "reset" if len(entries[syst]) == 0 else mode
+
+                # Determine base state
+                if len(entries[syst]) == 0:
+                    # New category: inherit from current "all" state if available
+                    if syst != "all" and "all" in entries and entries["all"]:
+                        base = entries["all"][-1].file.copy()
+                    else:
+                        # No base: force reset
+                        mode = "reset"
+                        base = []
+                else:
+                    base = entries[syst][-1].file.copy()
+
                 if mode == "reset":
-                    new = file_key
+                    new = file_key.copy()
                 elif mode == "append":
-                    new = entries[syst][-1].file.copy() + file_key
+                    new = base + file_key
                 elif mode == "remove":
-                    new = entries[syst][-1].file.copy()
+                    new = base.copy()
                     for file in file_key:
                         new.remove(file)
                 elif mode == "replace":
-                    new = entries[syst][-1].file.copy()
+                    new = base.copy()
                     if len(file_key) != 2:
                         msg = f"Invalid number of elements in replace mode: {len(file_key)}"
                         raise ValueError(msg)
@@ -140,14 +191,13 @@ class Catalog(namedtuple("Catalog", ["entries"])):
                     msg = f"Unknown mode for {timestamp}"
                     raise ValueError(msg)
 
-                if (
-                    time.unix_time(timestamp)
-                    in [entry.valid_from for entry in entries[syst]]
-                    and suppress_duplicate_check is False
-                ):
-                    msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
-                    raise ValueError(msg)
-                entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
+                entry = Catalog.Entry(ts_int, new)
+                if entries[syst] and entries[syst][-1].valid_from == ts_int:
+                    # Replace a same-timestamp entry (e.g. created by an "all" broadcast)
+                    entries[syst][-1] = entry
+                else:
+                    entries[syst].append(entry)
+
         for system, value in entries.items():
             entries[system] = sorted(value, key=lambda entry: entry.valid_from)
         return Catalog(entries)

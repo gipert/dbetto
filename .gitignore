@@ -158,3 +158,6 @@ Thumbs.db
 *~
 *.swp
 .aider*
+
+# uv
+uv.lock
