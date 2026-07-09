@@ -110,8 +110,8 @@ def test_catalog_valid_for():
         {"apply": ["file2.json"], "valid_from": "20220629T221955Z"},
     )
     catalog = Catalog.get(catalog)
-    # test system falls back to default
-    assert catalog.valid_for("20220628T221955Z", system="test") == ["file1.json"]
+    # test category falls back to default
+    assert catalog.valid_for("20220628T221955Z", category="test") == ["file1.json"]
     # test allow none
     assert catalog.valid_for("20220627T233502Z", allow_none=True) is None
     # no entries for timestamp
@@ -122,12 +122,12 @@ def test_catalog_valid_for():
         {"apply": ["file2.json"], "valid_from": "20220629T221955Z", "category": "test"},
     )
     catalog = Catalog.get(catalog)
-    # test system not present
+    # test category not present
     with pytest.raises(RuntimeError):
-        catalog.valid_for("20220628T221955Z", system="test2")
-    # test system not present and allow_none
+        catalog.valid_for("20220628T221955Z", category="test2")
+    # test category not present and allow_none
     assert (
-        catalog.valid_for("20220628T221955Z", system="test2", allow_none=True) is None
+        catalog.valid_for("20220628T221955Z", category="test2", allow_none=True) is None
     )
     # test fallback to default for earlier timestamps
     catalog = (
@@ -135,7 +135,11 @@ def test_catalog_valid_for():
         {"apply": ["file2.json"], "valid_from": "20220630T221955Z", "category": "test"},
     )
     catalog = Catalog.get(catalog)
-    assert catalog.valid_for("20220629T221955Z", system="test") == ["file1.json"]
+    assert catalog.valid_for("20220629T221955Z", category="test") == ["file1.json"]
+
+    # the deprecated `system` alias still works but warns
+    with pytest.deprecated_call():
+        assert catalog.valid_for("20220629T221955Z", system="test") == ["file1.json"]
 
 
 def test_catalog_write(tmpdir):

@@ -213,8 +213,8 @@ def test_time_validity():
     # test replace functionality
     assert jdb["dir1"].on("20230105T120000Z")["data"] == 1
     # test lists of categories
-    assert jdb.dir1.on("20230106T000001Z", system="cat1").data == 3
-    assert jdb.dir1.on("20230106T000001Z", system="cat2").data == 3
+    assert jdb.dir1.on("20230106T000001Z", category="cat1").data == 3
+    assert jdb.dir1.on("20230106T000001Z", category="cat2").data == 3
     # directory with no .yml
     with pytest.raises(RuntimeError):
         jdb["dir1"]["dir2"].on("20230101T000001Z")
@@ -232,8 +232,12 @@ def test_time_validity():
     assert jdb.dir1.on(tstamp).data == 1
     assert jdb.dir1.on(tstamp, r"^file3.*", "all").data == 1
 
-    assert jdb.dir1.on(tstamp, system="phy").data == 1
-    assert jdb.dir1.on(tstamp, system="cal").data == 1
+    assert jdb.dir1.on(tstamp, category="phy").data == 1
+    assert jdb.dir1.on(tstamp, category="cal").data == 1
+
+    # the deprecated `system` alias still works but warns
+    with pytest.deprecated_call():
+        assert jdb.dir1.on(tstamp, system="phy").data == 1
 
     # test that nested structures are not irreversibly modified by on
     read1 = deepcopy(jdb.dir4.on("20230101T000000Z"))
