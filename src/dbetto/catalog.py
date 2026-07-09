@@ -19,6 +19,7 @@ import collections
 import json
 import logging
 import types
+import warnings
 from collections import namedtuple
 from collections.abc import Generator
 from pathlib import Path
@@ -80,9 +81,9 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         def asdict(self):
             return {"valid_from": self.valid_from, "apply": self.file}
 
-        def save_format(self, system: str = "all"):
+        def save_format(self, category: str = "all"):
             dic = self.asdict()
-            dic["category"] = system
+            dic["category"] = category
             dic["valid_from"] = time.datetime_to_str(dic["valid_from"])
             return dic
 
@@ -110,27 +111,27 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         entries = {}
         for props in PropsStream.get(propstream):
             timestamp = props["valid_from"]
-            system = props.get("category", "all")
-            if not isinstance(system, list):
-                system = [system]
+            categories = props.get("category", "all")
+            if not isinstance(categories, list):
+                categories = [categories]
             file_key = props["apply"]
             if isinstance(file_key, str):
                 file_key = [file_key]
-            for syst in system:
-                if syst not in entries:
-                    entries[syst] = []
+            for category in categories:
+                if category not in entries:
+                    entries[category] = []
                 mode = props.get("mode", mode_default)
-                mode = "reset" if len(entries[syst]) == 0 else mode
+                mode = "reset" if len(entries[category]) == 0 else mode
                 if mode == "reset":
                     new = file_key
                 elif mode == "append":
-                    new = entries[syst][-1].file.copy() + file_key
+                    new = entries[category][-1].file.copy() + file_key
                 elif mode == "remove":
-                    new = entries[syst][-1].file.copy()
+                    new = entries[category][-1].file.copy()
                     for file in file_key:
                         new.remove(file)
                 elif mode == "replace":
-                    new = entries[syst][-1].file.copy()
+                    new = entries[category][-1].file.copy()
                     if len(file_key) != 2:
                         msg = f"Invalid number of elements in replace mode: {len(file_key)}"
                         raise ValueError(msg)
@@ -142,14 +143,14 @@ class Catalog(namedtuple("Catalog", ["entries"])):
 
                 if (
                     time.unix_time(timestamp)
-                    in [entry.valid_from for entry in entries[syst]]
+                    in [entry.valid_from for entry in entries[category]]
                     and suppress_duplicate_check is False
                 ):
                     msg = f"Duplicate timestamp: {timestamp}, use reset mode instead with a single entry"
                     raise ValueError(msg)
-                entries[syst].append(Catalog.Entry(time.unix_time(timestamp), new))
-        for system, value in entries.items():
-            entries[system] = sorted(value, key=lambda entry: entry.valid_from)
+                entries[category].append(Catalog.Entry(time.unix_time(timestamp), new))
+        for category, value in entries.items():
+            entries[category] = sorted(value, key=lambda entry: entry.valid_from)
         return Catalog(entries)
 
     @staticmethod
@@ -163,31 +164,48 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         )  # difference between old jsonl and new yaml is just the change of default mode from append to reset
 
     def valid_for(
-        self, timestamp: str, system: str = "all", allow_none: bool = False
+        self,
+        timestamp: str,
+        category: str = "all",
+        allow_none: bool = False,
+        *,
+        system: str | None = None,
     ) -> list:
-        """Get the valid entries for a given timestamp and system"""
-        if system in self.entries:
-            valid_from = [entry.valid_from for entry in self.entries[system]]
+        """Get the valid entries for a given timestamp and category.
+
+        .. deprecated::
+            The `system` argument is deprecated, use `category` instead.
+        """
+        if system is not None:
+            warnings.warn(
+                "the 'system' argument is deprecated, use 'category' instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            category = system
+
+        if category in self.entries:
+            valid_from = [entry.valid_from for entry in self.entries[category]]
             pos = bisect.bisect_right(valid_from, time.unix_time(timestamp))
             if pos > 0:
-                return self.entries[system][pos - 1].file
+                return self.entries[category][pos - 1].file
 
-            if system != "all":
-                return self.valid_for(timestamp, system="all", allow_none=allow_none)
+            if category != "all":
+                return self.valid_for(timestamp, "all", allow_none=allow_none)
 
             if allow_none:
                 return None
 
-            msg = f"No valid entries found for timestamp: {timestamp}, system: {system}"
+            msg = f"No valid entries found for timestamp: {timestamp}, category: {category}"
             raise RuntimeError(msg)
 
-        if system != "all":
-            return self.valid_for(timestamp, system="all", allow_none=allow_none)
+        if category != "all":
+            return self.valid_for(timestamp, "all", allow_none=allow_none)
 
         if allow_none:
             return None
 
-        msg = f"No entries found for system: {system}"
+        msg = f"No entries found for category: {category}"
         raise RuntimeError(msg)
 
     @staticmethod
@@ -200,9 +218,9 @@ class Catalog(namedtuple("Catalog", ["entries"])):
 
     def get_dict_format(self) -> list:
         write_list = []
-        for system, entries in self.entries.items():
+        for category, entries in self.entries.items():
             for entry in entries:
-                write_list.append(entry.save_format(system))
+                write_list.append(entry.save_format(category))
         current_files = []
         for entry in write_list:
             files = entry["apply"].copy()
@@ -233,9 +251,9 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         ext = Path(file_name).suffix
         if ext == ".jsonl":
             with Path(file_name).open("w", encoding="utf-8") as file:
-                for system, entries in self.entries.items():
+                for category, entries in self.entries.items():
                     for entry in entries:
-                        file.write(json.dumps(entry.save_format(system)) + "\n")
+                        file.write(json.dumps(entry.save_format(category)) + "\n")
         else:
             utils.write_dict(self.get_dict_format(), file_name)
 

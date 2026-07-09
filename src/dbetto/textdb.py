@@ -19,6 +19,7 @@ import json
 import logging
 import re
 import sys
+import warnings
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
@@ -158,9 +159,14 @@ class TextDB:
         return self.__store__.items()
 
     def on(
-        self, timestamp: str | datetime, pattern: str | None = None, system: str = "all"
+        self,
+        timestamp: str | datetime,
+        pattern: str | None = None,
+        category: str = "all",
+        *,
+        system: str | None = None,
     ) -> AttrsDict | list:
-        """Query database in `time[, file pattern, system]`.
+        """Query database in `time[, file pattern, category]`.
 
         A (only one) valid validity file (YAML, JSON, JSONL and other file
         types supported) must exist in the directory to specify a validity
@@ -185,9 +191,20 @@ class TextDB:
             pattern ``YYYYmmddTHHMMSSZ``.
         pattern
             query by filename pattern.
+        category
+            query only a data taking "category"/"system" (e.g. 'all', 'phy',
+            'cal', 'lar', ...)
         system
-            query only a data taking "system" (e.g. 'all', 'phy', 'cal', 'lar', ...)
+            deprecated alias for `category`.
         """
+        if system is not None:
+            warnings.warn(
+                "the 'system' argument is deprecated, use 'category' instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            category = system
+
         _extensions = [*list(self.__extensions__), ".jsonl"]
         validity_file = None
         for ext in _extensions:
@@ -207,7 +224,7 @@ class TextDB:
             raise RuntimeError(msg)
 
         # parse validity file and return requested files
-        file_list = Catalog.get_files(str(validity_file), timestamp, system)
+        file_list = Catalog.get_files(str(validity_file), timestamp, category)
 
         # select only files matching pattern, if specified
         if pattern is not None:
