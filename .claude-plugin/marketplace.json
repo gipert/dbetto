@@ -1,0 +1,12 @@
+{
+  "name": "dbetto-tools",
+  "description": "Claude Code plugins for working with dbetto text databases.",
+  "owner": { "name": "Luigi Pertoldi", "email": "gipert@pm.me" },
+  "plugins": [
+    {
+      "name": "inspect-textdb",
+      "source": "./.claude/skills/inspect-textdb",
+      "description": "Load, query, and verify dbetto TextDB/Catalog/Props metadata (JSON/YAML text databases and time-validity files)."
+    }
+  ]
+}
