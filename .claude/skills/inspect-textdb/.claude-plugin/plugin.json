@@ -1,0 +1,6 @@
+{
+  "name": "inspect-textdb",
+  "description": "Load, query, and verify dbetto TextDB/Catalog/Props metadata (JSON/YAML text databases and time-validity files).",
+  "version": "1.0.0",
+  "author": { "name": "Luigi Pertoldi", "email": "gipert@pm.me" }
+}
