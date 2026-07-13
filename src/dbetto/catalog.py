@@ -31,6 +31,25 @@ from .attrsdict import AttrsDict
 log = logging.getLogger(__name__)
 
 
+def _resolve_category_alias(
+    category: str, system: str | None, stacklevel: int = 3
+) -> str:
+    """Resolve the deprecated `system` keyword alias to `category`.
+
+    Emits a :class:`DeprecationWarning` and returns `system` when it was passed,
+    otherwise returns `category` unchanged. `stacklevel` should point the warning
+    at the original caller (default assumes one intermediate frame).
+    """
+    if system is not None:
+        warnings.warn(
+            "the 'system' argument is deprecated, use 'category' instead",
+            DeprecationWarning,
+            stacklevel=stacklevel,
+        )
+        return system
+    return category
+
+
 class PropsStream:
     """Simple class to control loading of validity files"""
 
@@ -176,13 +195,7 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         .. deprecated::
             The `system` argument is deprecated, use `category` instead.
         """
-        if system is not None:
-            warnings.warn(
-                "the 'system' argument is deprecated, use 'category' instead",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            category = system
+        category = _resolve_category_alias(category, system)
 
         if category in self.entries:
             valid_from = [entry.valid_from for entry in self.entries[category]]
