@@ -1,21 +1,10 @@
-# OpenAI Codex
-
-## Testing requirements
-
-Install all required dependencies for tests, linting and docs building by using
-the `all` optional dependency group defined in `pyproject.toml`. With
-python-pip, you would need to run `pip install -e '.[all]'`.
-
-Make sure the `bin` directory where executables are installed by pip is added to
-the `PATH` environment variable.
-
-There are many dependencies, so it could take a while to install them. Please
-wait, do not interrupt the install process.
-
 ## Testing
 
-run `nox -s docs --non-interactive` to build docs. `nox -s lint` for linting.
-`nox -s tests` for tests.
+- `nox -s tests` runs the test suite.
+- `nox -s docs --non-interactive` builds the docs.
+- `nox -s lint` runs the pre-commit hooks; `nox -s pylint` runs PyLint (CI runs
+  both). Bare `nox` runs lint + pylint + tests. Note: mypy is manual-stage and
+  not run by `nox -s lint`.
 
 ## Submitting a Pull Request
 
