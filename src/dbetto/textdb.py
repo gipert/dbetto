@@ -19,7 +19,6 @@ import json
 import logging
 import re
 import sys
-import warnings
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
@@ -28,7 +27,7 @@ import yaml
 
 from . import utils
 from .attrsdict import AttrsDict
-from .catalog import Catalog, Props
+from .catalog import Catalog, Props, _resolve_category_alias
 
 log = logging.getLogger(__name__)
 
@@ -197,13 +196,7 @@ class TextDB:
         system
             deprecated alias for `category`.
         """
-        if system is not None:
-            warnings.warn(
-                "the 'system' argument is deprecated, use 'category' instead",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            category = system
+        category = _resolve_category_alias(category, system)
 
         _extensions = [*list(self.__extensions__), ".jsonl"]
         validity_file = None
