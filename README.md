@@ -76,3 +76,15 @@ dict_keys(['V02160A', 'V02160B', 'V05261B', 'V05266A', 'V05266B', 'V05268B', 'V0
 ```
 
 Have a look at the [docs](https://dbetto.readthedocs.io) for more!
+
+## Claude Code skill
+
+This repo ships a [Claude Code](https://claude.com/claude-code) skill,
+`inspect-textdb`, that teaches the agent to load, query, and verify dbetto text
+databases (JSON/YAML files and time-validity files). Install it from the remote
+repo without cloning:
+
+```
+/plugin marketplace add gipert/dbetto
+/plugin install inspect-textdb@dbetto-tools
+```
