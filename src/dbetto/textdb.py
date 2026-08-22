@@ -148,7 +148,7 @@ class TextDB:
             try:
                 self[j.with_suffix("")]
             except (json.JSONDecodeError, yaml.YAMLError, ValueError) as e:
-                msg = f"could not scan file {j}, reason: {e!r}"
+                msg = f"could not scan file {j}, reason: {e!s}"
                 log.warning(msg)
 
     def keys(self) -> list[str]:
