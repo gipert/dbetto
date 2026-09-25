@@ -313,11 +313,12 @@ class Props:
         _seen = set(props_a)
         for key in list(props_a) + [k for k in props_b if k not in _seen]:
             old = props_a.get(key)
-            new = props_b.get(key)
+            if key not in props_b:  # an explicit null in props_b still overrides
+                a[key] = old
+                continue
+            new = props_b[key]
             if isinstance(old, dict) and isinstance(new, dict):
                 a[key] = Props.add_to(old, new)
-            elif new is None:
-                a[key] = old
             else:
                 a[key] = new
 

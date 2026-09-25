@@ -58,6 +58,17 @@ def test_props_add_to_ordering():
     assert result["y"] == 99  # props_b value wins on overlap
 
 
+def test_props_add_to_null_overrides():
+    # an explicit null in props_b overrides props_a, a missing key does not
+    a = {"rule": {"inputs": {"muon": {"cfg": "m.yaml"}, "evt": "e.yaml"}}, "z": 1}
+    b = {"rule": {"inputs": {"muon": None}}}
+    result = Props.add_to(a, b)
+
+    assert result["rule"]["inputs"]["muon"] is None
+    assert result["rule"]["inputs"]["evt"] == "e.yaml"
+    assert result["z"] == 1
+
+
 def test_access():
     jdb = TextDB(testdb)
     assert isinstance(jdb["file1.json"], AttrsDict)
