@@ -110,10 +110,12 @@ def test_copies_are_writable():
 
 def test_readonly_data_still_usable():
     frozen = TextDB(testdb / "dir4").on(T2)
-    assert frozen.array + [0] == [-1, -2, -3, -4, 0]
+    assert frozen.array + [0] == [-1, -2, -3, -4, 0]  # noqa: RUF005 (tests `+`)
     assert sorted(frozen.array) == [-4, -3, -2, -1]
     assert json.loads(json.dumps(frozen.array)) == [-1, -2, -3, -4]
-    assert yaml.safe_dump({"a": frozen.array}) == yaml.safe_dump({"a": [-1, -2, -3, -4]})
+    assert yaml.safe_dump({"a": frozen.array}) == yaml.safe_dump(
+        {"a": [-1, -2, -3, -4]}
+    )
     assert yaml.dump({"a": frozen.array}) == yaml.dump({"a": [-1, -2, -3, -4]})
     assert frozen.to_dict()["array"] == [-1, -2, -3, -4]
     assert frozen.group.map("label")["a"].data == -1
