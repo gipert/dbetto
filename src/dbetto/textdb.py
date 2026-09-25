@@ -26,7 +26,7 @@ from pathlib import Path
 import yaml
 
 from . import utils
-from .attrsdict import AttrsDict
+from .attrsdict import AttrsDict, _set_readonly
 from .catalog import Catalog, Props, _resolve_category_alias
 
 log = logging.getLogger(__name__)
@@ -179,9 +179,10 @@ class TextDB:
         text files. Paths may be relative to this directory or absolute; only
         absolute paths will expand wildcards and environment variables.
 
-        Note that the same object will be returned for multiple timestamps if
-        it is valid for all of them; modifications to the returned object will
-        popagate to all of these (unless a deepcopy is explicitly performed).
+        Note that the returned object shares its contents with the database
+        and with results for other timestamps, so it is read-only: any
+        in-place modification (of dicts or lists) raises :class:`TypeError`.
+        Use :func:`copy.deepcopy` to obtain a writable copy.
 
         Parameters
         ----------
@@ -347,7 +348,8 @@ class TextDB:
                             loaded[i] = AttrsDict(el)
                             Props.subst_vars(loaded[i], var_values={"_": self.__path__})
 
-                db_ptr.__store__[item_id] = loaded
+                # cached contents are shared with on() results: freeze them
+                db_ptr.__store__[item_id] = _set_readonly(loaded, True)
 
             # set also an attribute, if possible
             if item_id.isidentifier():
