@@ -15,11 +15,68 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 from collections.abc import Hashable
 from typing import Any
 
+import yaml
+
 log = logging.getLogger(__name__)
+
+
+class ReadOnlyList(list):
+    """A :class:`list` that cannot be modified in place.
+
+    Lists inside a read-only :class:`AttrsDict` are converted to this type.
+    Non-mutating operations (indexing, iteration, ``+``, :func:`sorted`, JSON
+    or YAML serialization) behave like a plain list; copies are plain lists.
+    """
+
+    def _read_only(self, *_, **__):
+        msg = "this list is read-only"
+        raise TypeError(msg)
+
+    append = extend = insert = remove = pop = clear = sort = reverse = _read_only
+    __setitem__ = __delitem__ = __iadd__ = __imul__ = _read_only
+
+    def __reduce__(self):
+        return (ReadOnlyList, (list(self),))
+
+    def __copy__(self) -> list:
+        return list(self)
+
+    def __deepcopy__(self, memo: dict) -> list:
+        new = []
+        memo[id(self)] = new
+        new.extend(copy.deepcopy(v, memo) for v in self)
+        return new
+
+
+# dump ReadOnlyList like a plain list
+for _dumper in (
+    yaml.representer.SafeRepresenter,
+    yaml.representer.Representer,
+    yaml.Dumper,
+    yaml.SafeDumper,
+):
+    _dumper.add_representer(
+        ReadOnlyList, yaml.representer.SafeRepresenter.represent_list
+    )
+
+
+def _set_readonly(obj: Any, flag: bool) -> Any:
+    """Propagate the read-only `flag` into `obj`, return the object to store."""
+    if isinstance(obj, AttrsDict):
+        if obj.__readonly__ != flag:
+            AttrsDict.__setattr__(obj, "__readonly__", flag, suppress_warning=True)
+        return obj
+    if isinstance(obj, list):
+        if flag == isinstance(obj, ReadOnlyList):  # already in the right state
+            return obj
+        items = [_set_readonly(v, flag) for v in obj]
+        return ReadOnlyList(items) if flag else items
+    return obj
 
 
 class AttrsDict(dict):
@@ -67,13 +124,17 @@ class AttrsDict(dict):
             msg = "expected dict"
             raise TypeError(msg)
 
-        # attribute that holds cached remappings -- see map()
-        self.__readonly__ = readonly
+        # only propagate True: never unfreeze shared read-only children
+        if readonly:
+            self.__readonly__ = True
 
-    def __setitem__(self, key: str | int | float, value: Any) -> Any:
+    def _check_writable(self) -> None:
         if self.__readonly__:
             msg = "this AttrsDict is read-only"
             raise TypeError(msg)
+
+    def __setitem__(self, key: str | int | float, value: Any) -> Any:
+        AttrsDict._check_writable(self)
 
         # convert dicts to AttrsDicts
         if not isinstance(value, AttrsDict):
@@ -82,7 +143,7 @@ class AttrsDict(dict):
             # recurse lists
             elif isinstance(value, list):
                 for i, el in enumerate(value):
-                    if isinstance(el, dict):
+                    if isinstance(el, dict) and not isinstance(el, AttrsDict):
                         value[i] = AttrsDict(el)  # this should make it recursive
 
         super().__setitem__(key, value)
@@ -102,12 +163,58 @@ class AttrsDict(dict):
                 log.warning(
                     "toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying"
                 )
-            for v in super().values():
-                if isinstance(v, AttrsDict):
-                    v.__setattr__("__readonly__", value, suppress_warning=True)
+            for key, val in list(dict.items(self)):
+                new = _set_readonly(val, value)
+                if new is not val:  # list converted to/from ReadOnlyList
+                    dict.__setitem__(self, key, new)
+                    if isinstance(key, str) and key.isidentifier():
+                        object.__setattr__(self, key, new)
             super().__setattr__(name, value)
         else:
             self.__setitem__(name, value)
+
+    def __delattr__(self, name: str) -> None:
+        AttrsDict._check_writable(self)
+        super().__delattr__(name)
+
+    def __delitem__(self, key: Any) -> None:
+        AttrsDict._check_writable(self)
+        super().__delitem__(key)
+
+    def pop(self, *args: Any) -> Any:
+        AttrsDict._check_writable(self)
+        return super().pop(*args)
+
+    def popitem(self) -> tuple:
+        AttrsDict._check_writable(self)
+        return super().popitem()
+
+    def clear(self) -> None:
+        AttrsDict._check_writable(self)
+        super().clear()
+
+    def update(self, *args: Any, **kwargs: Any) -> None:
+        AttrsDict._check_writable(self)
+        super().update(*args, **kwargs)
+
+    def setdefault(self, key: Any, default: Any = None) -> Any:
+        AttrsDict._check_writable(self)
+        return super().setdefault(key, default)
+
+    def __copy__(self) -> AttrsDict:
+        """Writable shallow copy."""
+        new = AttrsDict()
+        for key, val in dict.items(self):
+            new[key] = val
+        return new
+
+    def __deepcopy__(self, memo: dict) -> AttrsDict:
+        """Writable deep copy."""
+        new = AttrsDict()
+        memo[id(self)] = new
+        for key, val in dict.items(self):
+            new[key] = copy.deepcopy(val, memo)
+        return new
 
     def to_dict(self) -> dict:
         """Return a plain :class:`dict` representation of the object.
@@ -230,9 +337,10 @@ class AttrsDict(dict):
             msg = f"could not find '{label}' anywhere in the dictionary"
             raise ValueError(msg)
 
-        # cache it
+        # cache it; only propagate True, never unfreeze the (shared) values
         self.__cached_remaps__[label] = newmap
-        newmap.__readonly__ = self.__readonly__
+        if self.__readonly__:
+            newmap.__readonly__ = True
         return newmap
 
     def group(self, label: str) -> AttrsDict:
@@ -280,9 +388,7 @@ class AttrsDict(dict):
 
     # d |= other_d should still produce a valid AttrsDict
     def __ior__(self, other: dict | AttrsDict) -> AttrsDict:
-        if self.__readonly__:
-            msg = "this AttrsDict is read-only"
-            raise TypeError(msg)
+        AttrsDict._check_writable(self)
         return AttrsDict(super().__ior__(other))
 
     # d1 | d2 should still produce a valid AttrsDict
@@ -304,9 +410,9 @@ class AttrsDict(dict):
             cached = super().__getattribute__("__cached_remaps__")
         except AttributeError:
             cached = {}
-        return {"__cached_remaps__": cached}
+        return {"__cached_remaps__": cached, "__readonly__": self.__readonly__}
 
     def __setstate__(self, state: dict) -> None:
         """Restore the instance-specific state during unpickling."""
         super().__setattr__("__cached_remaps__", state.get("__cached_remaps__", {}))
-        super().__setattr__("__readonly__", False)
+        super().__setattr__("__readonly__", state.get("__readonly__", False))
