@@ -265,8 +265,10 @@ class Catalog(namedtuple("Catalog", ["entries"])):
         if ext == ".jsonl":
             with Path(file_name).open("w", encoding="utf-8") as file:
                 for category, entries in self.entries.items():
-                    for entry in entries:
-                        file.write(json.dumps(entry.save_format(category)) + "\n")
+                    file.writelines(
+                        json.dumps(entry.save_format(category)) + "\n"
+                        for entry in entries
+                    )
         else:
             utils.write_dict(self.get_dict_format(), file_name)
 

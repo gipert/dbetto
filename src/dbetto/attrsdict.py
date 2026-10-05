@@ -70,7 +70,7 @@ class AttrsDict(dict):
         # attribute that holds cached remappings -- see map()
         self.__readonly__ = readonly
 
-    def __setitem__(self, key: str | int | float, value: Any) -> Any:
+    def __setitem__(self, key: str | float, value: Any) -> Any:
         if self.__readonly__:
             msg = "this AttrsDict is read-only"
             raise TypeError(msg)
