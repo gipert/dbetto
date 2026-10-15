@@ -28,9 +28,9 @@ log = logging.getLogger(__name__)
 __file_extensions__ = {"json": [".json"], "yaml": [".yaml", ".yml"]}
 
 try:
-    from yaml import CLoader as Loader
+    from yaml import CSafeLoader as Loader
 except ImportError:
-    from yaml import Loader
+    from yaml import SafeLoader as Loader
 
 
 # values without a decimal point e.g. 5e-6 will be read as a str and not a float

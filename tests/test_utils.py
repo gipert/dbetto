@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+import yaml
+
 from dbetto import AttrsDict
 from dbetto.catalog import Props
 from dbetto.utils import load_attrs_dict, load_dict
@@ -32,3 +35,10 @@ def test_load_attrs_dict():
         assert isinstance(result, AttrsDict)
         plain = load_dict(fname)
         assert result == plain
+
+
+def test_load_dict_rejects_python_tags(tmp_path):
+    fname = tmp_path / "evil.yaml"
+    fname.write_text("a: !!python/object/apply:os.getcwd []\n", encoding="utf-8")
+    with pytest.raises(yaml.constructor.ConstructorError):
+        load_dict(fname)
