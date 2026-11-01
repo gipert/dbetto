@@ -26,7 +26,7 @@ from pathlib import Path
 import yaml
 
 from . import utils
-from .attrsdict import AttrsDict, _set_readonly
+from .attrsdict import AttrsDict, ReadOnlyList
 from .catalog import Catalog, Props, _resolve_category_alias
 
 log = logging.getLogger(__name__)
@@ -335,11 +335,13 @@ class TextDB:
                     msg = f"{obj}{ext_list} is not a valid file or directory"
                     raise FileNotFoundError(msg)
 
-                # if it's a valid file, construct an AttrsDict object
+                # if it's a valid file, construct an AttrsDict object. Cached
+                # contents are shared with on() results: freeze them
                 loaded = utils.load_dict(obj)
                 if isinstance(loaded, dict):
                     loaded = AttrsDict(loaded)
                     Props.subst_vars(loaded, var_values={"_": self.__path__})
+                    loaded.__readonly__ = True
                 elif (
                     loaded is not None
                 ):  # must be a list, check if there are dicts inside to convert
@@ -347,9 +349,9 @@ class TextDB:
                         if isinstance(el, dict):
                             loaded[i] = AttrsDict(el)
                             Props.subst_vars(loaded[i], var_values={"_": self.__path__})
+                    loaded = ReadOnlyList(loaded)
 
-                # cached contents are shared with on() results: freeze them
-                db_ptr.__store__[item_id] = _set_readonly(loaded, True)
+                db_ptr.__store__[item_id] = loaded
 
             # set also an attribute, if possible
             if item_id.isidentifier():

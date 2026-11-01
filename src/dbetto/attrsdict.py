@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -31,10 +31,14 @@ log = logging.getLogger(__name__)
 class ReadOnlyList(list):
     """A :class:`list` that cannot be modified in place.
 
-    Lists inside a read-only :class:`AttrsDict` are converted to this type.
-    Non-mutating operations (indexing, iteration, ``+``, :func:`sorted`, JSON
-    or YAML serialization) behave like a plain list; copies are plain lists.
+    Lists inside a read-only :class:`AttrsDict` are converted to this type, and
+    the contents of a ReadOnlyList are made read-only too. Non-mutating
+    operations (indexing, iteration, ``+``, :func:`sorted`, JSON or YAML
+    serialization) behave like a plain list; copies are plain lists.
     """
+
+    def __init__(self, iterable: Iterable = ()) -> None:
+        super().__init__(_with_readonly(v, True) for v in iterable)
 
     def _read_only(self, *_, **__):
         msg = "this list is read-only"
@@ -68,18 +72,25 @@ for _dumper in (
     )
 
 
-def _set_readonly(obj: Any, flag: bool) -> Any:
-    """Propagate the read-only `flag` into `obj`, return the object to store."""
+def _with_readonly(obj: Any, flag: bool) -> Any:
+    """Set the read-only `flag` on `obj` and its contents, return the object to store."""
     if isinstance(obj, AttrsDict):
         if obj.__readonly__ != flag:
-            AttrsDict.__setattr__(obj, "__readonly__", flag, suppress_warning=True)
-        return obj
-    if isinstance(obj, list):
-        if flag == isinstance(obj, ReadOnlyList):  # already in the right state
-            return obj
-        items = (_set_readonly(v, flag) for v in obj)
-        return ReadOnlyList(items) if flag else list(items)
+            _set_readonly(obj, flag)
+    elif isinstance(obj, list) and flag != isinstance(obj, ReadOnlyList):
+        return ReadOnlyList(obj) if flag else [_with_readonly(v, False) for v in obj]
     return obj
+
+
+def _set_readonly(d: AttrsDict, flag: bool) -> None:
+    """Set the read-only `flag` on `d` and its contents."""
+    for key, val in dict.items(d):
+        new = _with_readonly(val, flag)
+        if new is not val:  # list converted to/from ReadOnlyList
+            dict.__setitem__(d, key, new)
+            if isinstance(key, str) and key.isidentifier():
+                object.__setattr__(d, key, new)
+    object.__setattr__(d, "__readonly__", flag)
 
 
 class AttrsDict(dict):
@@ -158,21 +169,13 @@ class AttrsDict(dict):
         # reset special __cached_remaps__ private attribute -- see map()
         super().__setattr__("__cached_remaps__", {})
 
-    def __setattr__(
-        self, name: str, value: Any, suppress_warning: bool = False
-    ) -> None:
+    def __setattr__(self, name: str, value: Any) -> None:
         if name == "__readonly__":
-            if not suppress_warning and self.__readonly__ and not value:
+            if self.__readonly__ and not value:
                 log.warning(
                     "toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying"
                 )
-            for key, val in dict.items(self):
-                new = _set_readonly(val, value)
-                if new is not val:  # list converted to/from ReadOnlyList
-                    dict.__setitem__(self, key, new)
-                    if isinstance(key, str) and key.isidentifier():
-                        object.__setattr__(self, key, new)
-            super().__setattr__(name, value)
+            _set_readonly(self, value)
         else:
             self.__setitem__(name, value)
 
