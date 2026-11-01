@@ -282,11 +282,13 @@ class AttrsDict(dict):
         return self.map(label, unique=False)
 
     # d |= other_d should still produce a valid AttrsDict
-    def __ior__(self, other: dict | AttrsDict) -> AttrsDict:  # noqa: PYI034
+    def __ior__(self, other: dict | AttrsDict) -> Self:
         if self.__readonly__:
             msg = "this AttrsDict is read-only"
             raise TypeError(msg)
-        return AttrsDict(super().__ior__(other))
+        for key, value in other.items():
+            self[key] = value
+        return self
 
     # d1 | d2 should still produce a valid AttrsDict
     def __or__(self, other: dict | AttrsDict) -> AttrsDict:

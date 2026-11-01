@@ -297,11 +297,16 @@ def test_modification():
 
 def test_merging():
     d = AttrsDict({"a": 1})
-    d |= {"b": 2}
-    assert d == {"a": 1, "b": 2}
+    d_alias = d
+    d |= {"b": 2, "e": {"f": 5}}
+    assert d is d_alias
+    assert d == {"a": 1, "b": 2, "e": {"f": 5}}
     assert isinstance(d, AttrsDict)
     assert hasattr(d, "a")
     assert hasattr(d, "b")
+    assert isinstance(d.e, AttrsDict)
+    assert d.e.f == 5
+    del d["e"]
 
     d2 = d | {"c": 3}
     assert isinstance(d2, AttrsDict)
