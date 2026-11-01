@@ -77,8 +77,8 @@ def _set_readonly(obj: Any, flag: bool) -> Any:
     if isinstance(obj, list):
         if flag == isinstance(obj, ReadOnlyList):  # already in the right state
             return obj
-        items = [_set_readonly(v, flag) for v in obj]
-        return ReadOnlyList(items) if flag else items
+        items = (_set_readonly(v, flag) for v in obj)
+        return ReadOnlyList(items) if flag else list(items)
     return obj
 
 
@@ -144,7 +144,7 @@ class AttrsDict(dict):
             if isinstance(value, dict):
                 value = AttrsDict(value)  # this should make it recursive
             # recurse lists
-            elif isinstance(value, list):
+            elif isinstance(value, list) and not isinstance(value, ReadOnlyList):
                 for i, el in enumerate(value):
                     if isinstance(el, dict) and not isinstance(el, AttrsDict):
                         value[i] = AttrsDict(el)  # this should make it recursive
@@ -166,7 +166,7 @@ class AttrsDict(dict):
                 log.warning(
                     "toggling AttrsDict from read-only to writable is not recommended; instead consider deepcopying"
                 )
-            for key, val in list(dict.items(self)):
+            for key, val in dict.items(self):
                 new = _set_readonly(val, value)
                 if new is not val:  # list converted to/from ReadOnlyList
                     dict.__setitem__(self, key, new)
@@ -206,10 +206,7 @@ class AttrsDict(dict):
 
     def __copy__(self) -> AttrsDict:
         """Writable shallow copy."""
-        new = AttrsDict()
-        for key, val in dict.items(self):
-            new[key] = val
-        return new
+        return AttrsDict(self)
 
     def __deepcopy__(self, memo: dict) -> AttrsDict:
         """Writable deep copy."""
