@@ -17,7 +17,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Hashable
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +39,7 @@ class AttrsDict(dict):
     1
     """
 
-    def __new__(cls, *_, **__) -> AttrsDict:
+    def __new__(cls, *_, **__) -> Self:
         """Create a new instance of AttrsDict."""
         instance = super().__new__(cls)
         super(AttrsDict, instance).__setattr__("__readonly__", False)
@@ -208,10 +211,10 @@ class AttrsDict(dict):
 
             if not isinstance(newid, Hashable):
                 msg = f"'{label}' values are not all hashable"
-                raise RuntimeError(msg)
+                raise TypeError(msg)
 
             if newid in newmap:
-                newkey = sorted(newmap[newid].keys())[-1] + 1
+                newkey = max(newmap[newid].keys()) + 1
                 newmap[newid].update({newkey: v})
                 unique_tracker = False
             else:
@@ -279,7 +282,7 @@ class AttrsDict(dict):
         return self.map(label, unique=False)
 
     # d |= other_d should still produce a valid AttrsDict
-    def __ior__(self, other: dict | AttrsDict) -> AttrsDict:
+    def __ior__(self, other: dict | AttrsDict) -> AttrsDict:  # noqa: PYI034
         if self.__readonly__:
             msg = "this AttrsDict is read-only"
             raise TypeError(msg)
